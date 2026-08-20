@@ -1,0 +1,6 @@
+{
+  "name": "Arche Fitness",
+  "description": "A modular full-stack SaaS platform for fitness tracking, client management, workout programming, and analytics.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

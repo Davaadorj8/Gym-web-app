@@ -1,0 +1,131 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  TRAINER
+  CLIENT
+}
+
+enum ClientStatus {
+  ACTIVE
+  INACTIVE
+  PENDING
+  ARCHIVED
+}
+
+enum WorkoutLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  ELITE
+}
+
+model User {
+  id            String          @id @default(cuid())
+  email         String          @unique
+  name          String?
+  role          Role            @default(TRAINER)
+  avatarUrl     String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  clients       Client[]        @relation("TrainerClients")
+  workoutPlans  WorkoutPlan[]   @relation("TrainerWorkouts")
+  auditLogs     AuditLog[]
+
+  @@map("users")
+}
+
+model Client {
+  id              String          @id @default(cuid())
+  trainerId       String
+  trainer         User            @relation("TrainerClients", fields: [trainerId], references: [id], onDelete: Cascade)
+  firstName       String
+  lastName        String
+  email           String          @unique
+  phone           String?
+  status          ClientStatus    @default(ACTIVE)
+  fitnessGoal     String?
+  fitnessLevel    WorkoutLevel    @default(BEGINNER)
+  joinedDate      DateTime        @default(now())
+  notes           String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  workoutSessions WorkoutSession[]
+
+  @@map("clients")
+}
+
+model WorkoutPlan {
+  id              String          @id @default(cuid())
+  trainerId       String
+  trainer         User            @relation("TrainerWorkouts", fields: [trainerId], references: [id], onDelete: Cascade)
+  title           String
+  description     String?
+  level           WorkoutLevel    @default(INTERMEDIATE)
+  category        String          // e.g. "Hypertrophy", "Endurance", "Mobility", "Powerlifting"
+  durationWeeks   Int             @default(4)
+  isPublished     Boolean         @default(false)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  exercises       Exercise[]
+  sessions        WorkoutSession[]
+
+  @@map("workout_plans")
+}
+
+model Exercise {
+  id            String       @id @default(cuid())
+  planId        String
+  plan          WorkoutPlan  @relation(fields: [planId], references: [id], onDelete: Cascade)
+  name          String
+  targetMuscle  String       // e.g. "Chest", "Legs", "Back", "Core"
+  sets          Int          @default(3)
+  reps          Int          @default(10)
+  restSeconds   Int          @default(60)
+  orderIndex    Int          @default(0)
+  notes         String?
+
+  @@map("exercises")
+}
+
+model WorkoutSession {
+  id          String       @id @default(cuid())
+  clientId    String
+  client      Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  planId      String?
+  plan        WorkoutPlan? @relation(fields: [planId], references: [id], onDelete: SetNull)
+  title       String
+  completedAt DateTime     @default(now())
+  durationMin Int
+  caloriesBurned Int?
+  performanceRating Int?   // 1 to 5 scale
+  feedbackNotes String?
+
+  @@map("workout_sessions")
+}
+
+model AuditLog {
+  id          String       @id @default(cuid())
+  userId      String?
+  user        User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action      String       // e.g. "CLIENT_CREATED", "WORKOUT_UPDATED"
+  entityType  String       // e.g. "Client", "WorkoutPlan"
+  entityId    String?
+  details     String?      // JSON or text summary
+  createdAt   DateTime     @default(now())
+
+  @@map("audit_logs")
+}
