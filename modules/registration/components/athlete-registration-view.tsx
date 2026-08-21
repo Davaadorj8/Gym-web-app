@@ -1,10 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useAppDispatch } from '@/store/hooks';
-import { showToast } from '@/features/ui/uiSlice';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { showToast, setActiveTab } from '@/features/ui/uiSlice';
 import { addClient } from '@/features/clients/clientsSlice';
 import { registerMember, RegisteredMember } from '@/features/gym/gymSlice';
 import { ClientForm } from '@/components/clients/client-form';
@@ -21,7 +19,7 @@ import {
 
 export default function AthleteRegistrationView() {
   const dispatch = useAppDispatch();
-  const router = useRouter();
+  const membershipPlans = useAppSelector((state) => state.gym.membershipPlans);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [recentlyRegistered, setRecentlyRegistered] = useState<{
     name: string;
@@ -36,31 +34,19 @@ export default function AthleteRegistrationView() {
       // 1. Dispatch createClient
       const createdClient = await dispatch(addClient(data)).unwrap();
 
-      // 2. Synchronize with Gym Slice
-      const planNameMap: Record<string, string> = {
-        STANDARD: 'Standard Monthly (1 Mo)',
-        PREMIUM: '3 Months - Pro Athlete (3 Mo)',
-        VIP: '1 Year - Elite Unlimited (12 Mo)',
-        DAY_PASS: 'Day Pass (1 Day)',
-      };
+      // 2. Synchronize with Gym Slice & membership plan inventory
+      const matchedPlan = membershipPlans.find(
+        (p) =>
+          p.name.toLowerCase() === data.membershipType.toLowerCase() ||
+          p.id.toLowerCase() === data.membershipType.toLowerCase()
+      );
 
-      const durationMap: Record<string, number> = {
-        STANDARD: 1,
-        PREMIUM: 3,
-        VIP: 12,
-        DAY_PASS: 1,
-      };
-
-      const feeMap: Record<string, number> = {
-        STANDARD: 110,
-        PREMIUM: 299,
-        VIP: 999,
-        DAY_PASS: 25,
-      };
+      const planName = matchedPlan ? matchedPlan.name : (data.membershipType || 'Standard Pass');
+      const duration = matchedPlan ? matchedPlan.durationMonths : 1;
+      const totalFee = matchedPlan ? matchedPlan.price : 110;
 
       const regId = `ARC-${Math.floor(1000 + Math.random() * 9000)}`;
       const startDate = data.startDate || new Date().toISOString().split('T')[0];
-      const duration = durationMap[data.membershipType] || 1;
       
       const expiryDateObj = new Date(startDate);
       expiryDateObj.setMonth(expiryDateObj.getMonth() + duration);
@@ -78,12 +64,12 @@ export default function AthleteRegistrationView() {
         emergencyContact: data.emergencyContactName ? `${data.emergencyContactName} (${data.emergencyRelation || 'Contact'} - ${data.emergencyContactPhone || 'N/A'})` : undefined,
         medicalNotes: data.medicalNotes,
         photoUrl: null,
-        planId: `plan-${data.membershipType.toLowerCase()}`,
-        planName: planNameMap[data.membershipType] || 'Standard Pass',
+        planId: matchedPlan ? matchedPlan.id : `plan-${data.membershipType.toLowerCase()}`,
+        planName: planName,
         durationMonths: duration,
         startDate,
         expiryDate,
-        totalFee: feeMap[data.membershipType] || 110,
+        totalFee: totalFee,
         paymentStatus: 'PAID',
         paymentMethod: 'CARD',
         registeredByStaffId: 'staff-active',
@@ -97,7 +83,7 @@ export default function AthleteRegistrationView() {
       setRecentlyRegistered({
         name: `${data.firstName} ${data.lastName}`,
         regId,
-        membershipType: planNameMap[data.membershipType] || data.membershipType,
+        membershipType: planName,
       });
 
       dispatch(
@@ -133,14 +119,15 @@ export default function AthleteRegistrationView() {
           </div>
         </div>
 
-        <Link
-          href="/desk"
+        <button
+          type="button"
+          onClick={() => dispatch(setActiveTab('check-in-desk'))}
           className="py-2.5 px-4 bg-[#0E1E38] hover:bg-[#152B4E] border border-slate-700 text-slate-200 font-bold text-xs rounded-xl flex items-center gap-2 transition-all cursor-pointer shrink-0 self-start md:self-auto"
         >
           <UserCheck className="w-4 h-4 text-lime-400" />
           <span>Go to Check-in Desk</span>
           <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
-        </Link>
+        </button>
       </div>
 
       {/* Success Notification Banner */}
@@ -162,7 +149,7 @@ export default function AthleteRegistrationView() {
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => router.push('/desk')}
+              onClick={() => dispatch(setActiveTab('check-in-desk'))}
               className="px-3 py-1.5 bg-emerald-500 text-black font-extrabold text-xs rounded-lg hover:bg-emerald-400 transition cursor-pointer"
             >
               Check-In Now
@@ -183,7 +170,7 @@ export default function AthleteRegistrationView() {
         <ClientForm
           mode="full"
           onSubmit={handleSubmit}
-          onCancel={() => router.push('/dashboard')}
+          onCancel={() => dispatch(setActiveTab('dashboard'))}
           isSubmitting={isSubmitting}
         />
       </div>

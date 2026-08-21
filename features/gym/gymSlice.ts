@@ -87,10 +87,11 @@ export interface LockerUsageRecord {
 export interface MembershipPlan {
   id: string;
   name: string;
-  category: 'Over 18' | 'Youth' | 'Classes' | 'VIP Elite';
+  category: 'Over 18' | 'Under 18' | 'Organization' | 'Youth' | 'Classes' | 'VIP Elite' | string;
   price: number;
   durationMonths: number;
   description?: string;
+  specializedLessons?: string;
   color: string;
 }
 
@@ -148,49 +149,67 @@ interface GymState {
 
 export const initialMembershipPlans: MembershipPlan[] = [
   {
-    id: 'plan-aerobics',
-    name: 'aerobics (2 Mo)',
-    category: 'Classes',
-    price: 160,
-    durationMonths: 2,
-    description: 'Group aerobics & functional cardio studio sessions',
-    color: '#A3E635', // Lime
-  },
-  {
-    id: 'plan-elite-1y',
-    name: '1 Year - Elite Unlimited (12 Mo)',
-    category: 'VIP Elite',
-    price: 999,
-    durationMonths: 12,
-    description: '365 Days all-facility access + recovery spa lounge',
-    color: '#22D3EE', // Cyan
-  },
-  {
-    id: 'plan-youth-2m',
-    name: 'Under 18 Youth Pass (2 Mo)',
-    category: 'Youth',
-    price: 140,
-    durationMonths: 2,
-    description: 'Special youth supervised strength & fitness program',
-    color: '#F87171', // Coral/Pink
-  },
-  {
     id: 'plan-starter-1m',
-    name: '1 Month Membership',
+    name: '1 Month - Starter Pass',
     category: 'Over 18',
     price: 110,
     durationMonths: 1,
-    description: 'Full iron room & cardio area access with digital key',
-    color: '#FDE047', // Yellow/Gold
+    description: 'Standard adult athlete membership with full facility access',
+    color: '#10B981',
   },
   {
     id: 'plan-pro-3m',
-    name: '3 Months - Pro Athlete (3 Mo)',
+    name: '3 Months - Pro Athlete',
     category: 'Over 18',
     price: 299,
     durationMonths: 3,
     description: 'Quarterly membership + free locker assignment',
-    color: '#C084FC', // Purple
+    color: '#06B6D4',
+  },
+  {
+    id: 'plan-semi-6m',
+    name: '6 Months - Semi-Annual',
+    category: 'Over 18',
+    price: 550,
+    durationMonths: 6,
+    description: 'Semi-annual membership with priority guest passes',
+    color: '#3B82F6',
+  },
+  {
+    id: 'plan-elite-1y',
+    name: '1 Year - Elite Unlimited',
+    category: 'Over 18',
+    price: 999,
+    durationMonths: 12,
+    description: '365 Days all-facility access + recovery spa lounge',
+    color: '#8B5CF6',
+  },
+  {
+    id: 'plan-youth-1m',
+    name: 'Under 18 Youth Pass',
+    category: 'Under 18',
+    price: 80,
+    durationMonths: 1,
+    description: 'Special youth supervised strength & fitness program',
+    color: '#F59E0B',
+  },
+  {
+    id: 'plan-org-corp-1m',
+    name: 'Organization Corporate Pass',
+    category: 'Organization',
+    price: 300,
+    durationMonths: 1,
+    description: 'Company/Team institutional plan & group wellness access',
+    color: '#EC4899',
+  },
+  {
+    id: 'plan-aerobics-2m',
+    name: 'Aerobics & Functional Cardio Pass',
+    category: 'Over 18',
+    price: 160,
+    durationMonths: 2,
+    description: 'Group aerobics, HIIT studio & cardio coaching lessons',
+    color: '#A3E635',
   },
 ];
 

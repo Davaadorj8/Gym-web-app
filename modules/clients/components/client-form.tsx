@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useAppSelector } from '@/store/hooks';
 import { clientFormSchema, ClientFormData } from '../validations/client.schema';
 import {
   ChevronDown,
@@ -27,6 +28,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({
   mode = 'quick',
 }) => {
   const [showExtendedDetails, setShowExtendedDetails] = useState(mode === 'full');
+  const membershipPlans = useAppSelector((state) => state.gym.membershipPlans);
 
   const {
     register,
@@ -188,10 +190,20 @@ export const ClientForm: React.FC<ClientFormProps> = ({
               {...register('membershipType')}
               className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-800/90 px-3.5 py-2.5 text-sm text-white transition focus:border-cyan-500 focus:bg-slate-800 focus:outline-none focus:ring-1 focus:ring-cyan-500"
             >
-              <option value="STANDARD">Standard Monthly ($110/mo)</option>
-              <option value="PREMIUM">Premium / All-Access ($299/qtr)</option>
-              <option value="VIP">VIP Athlete ($999/yr)</option>
-              <option value="DAY_PASS">Day Pass ($25/day)</option>
+              {membershipPlans && membershipPlans.length > 0 ? (
+                membershipPlans.map((plan) => (
+                  <option key={plan.id} value={plan.name}>
+                    {plan.name} (${plan.price}{plan.durationMonths === 1 ? '/mo' : ` / ${plan.durationMonths} Mo`})
+                  </option>
+                ))
+              ) : (
+                <>
+                  <option value="Standard Monthly">Standard Monthly ($110/mo)</option>
+                  <option value="3 Months - Pro Athlete">3 Months - Pro Athlete ($299/qtr)</option>
+                  <option value="1 Year - Elite Unlimited">1 Year - Elite Unlimited ($999/yr)</option>
+                  <option value="Day Pass">Day Pass ($25/day)</option>
+                </>
+              )}
             </select>
           </div>
 

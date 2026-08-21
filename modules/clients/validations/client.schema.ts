@@ -7,7 +7,7 @@ export const clientFormSchema = z.object({
   phone: z.string().min(6, 'Valid phone number is required'),
   gender: z.enum(['MALE', 'FEMALE', 'OTHER']).default('MALE'),
   dateOfBirth: z.string().optional(),
-  membershipType: z.enum(['STANDARD', 'PREMIUM', 'VIP', 'DAY_PASS']).default('STANDARD'),
+  membershipType: z.string().default('STANDARD'),
   startDate: z.string().optional(),
   rfidTag: z.string().optional(),
   emergencyContactName: z.string().optional(),

@@ -24,6 +24,7 @@ import {
   UserCog,
 } from 'lucide-react';
 import StaffNotificationsSection from '@/components/staff/staff-notifications-section';
+import MembershipPlanBuilder from './membership-plan-builder';
 
 export default function AdminPanelView() {
   const dispatch = useAppDispatch();
@@ -386,61 +387,7 @@ export default function AdminPanelView() {
   {/* SECTION: Membership Plans & Subscriptions Config                          */}
   {/* ========================================================================= */}
   {activeAdminSection === 'PLANS' && (
-    <div className="space-y-6 animate-in fade-in duration-150">
-      <div className="bg-[#0A1324] border border-[#142644] rounded-2xl p-6 space-y-6 shadow-xl">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#142644] pb-4">
-          <div>
-            <div className="flex items-center gap-2 text-lime-400 font-extrabold text-sm uppercase tracking-wider font-mono">
-              <Layers className="w-5 h-5" />
-              <span>Membership Plans &amp; Subscriptions Config</span>
-            </div>
-            <p className="text-xs text-slate-400 mt-1">
-              Admin-created membership tiers. Automatically populates athlete registration options and dashboard analytics breakdown.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="px-3 py-1 bg-lime-400/10 border border-lime-400/30 rounded-xl text-xs font-mono font-bold text-lime-400">
-              {membershipPlans?.length || 5} Active Plans
-            </span>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {membershipPlans?.map((plan) => (
-            <div
-              key={plan.id}
-              className="p-5 rounded-xl border border-[#142644] bg-[#070E1C] hover:border-[#1E3A66] transition-all space-y-3"
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-2">
-                  <span
-                    className="w-3 h-3 rounded-full shrink-0 shadow-sm"
-                    style={{ backgroundColor: plan.color }}
-                  />
-                  <span className="font-extrabold text-white text-sm">{plan.name}</span>
-                </div>
-                <span className="px-2.5 py-0.5 rounded-md bg-[#0A1324] border border-[#142644] text-[10px] font-mono font-bold text-slate-300">
-                  {plan.category}
-                </span>
-              </div>
-
-              <div className="flex items-baseline justify-between pt-2 border-t border-[#142644]">
-                <div>
-                  <span className="text-2xl font-black text-white font-mono">${plan.price}</span>
-                  <span className="text-xs text-slate-400 font-mono"> / {plan.durationMonths} Mo</span>
-                </div>
-                <span className="text-[11px] font-mono font-bold text-lime-400 px-2 py-0.5 rounded bg-lime-400/10 border border-lime-400/30">Active</span>
-              </div>
-
-              {plan.description && (
-                <p className="text-xs text-slate-400 leading-relaxed">{plan.description}</p>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
+    <MembershipPlanBuilder />
   )}
 
   {/* ========================================================================= */}
