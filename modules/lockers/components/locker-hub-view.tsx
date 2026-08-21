@@ -1,8 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useLockerHub } from '../hooks/useLockerHub';
 import { LockerGrid } from './locker-grid';
+import { LockerUsageTable } from './locker-usage-table';
 import { LockerActionDialog } from './locker-action-dialog';
 import {
   Lock,
@@ -10,11 +11,8 @@ import {
   Wrench,
   AlertTriangle,
   Search,
-  SlidersHorizontal,
   LayoutGrid,
   List,
-  ShieldCheck,
-  Zap,
 } from 'lucide-react';
 
 export const LockerHubView: React.FC = () => {
@@ -24,6 +22,7 @@ export const LockerHubView: React.FC = () => {
     stats,
     registeredMembers,
     activeCheckIns,
+    lockerUsageLogs,
     searchQuery,
     setSearchQuery,
     statusFilter,
@@ -37,11 +36,14 @@ export const LockerHubView: React.FC = () => {
     viewMode,
     setViewMode,
     handleOpenLockerAction,
+    handleOpenLockerByNumber,
     handleCloseLockerAction,
     handleAssignLocker,
     handleReleaseLocker,
     handleToggleMaintenance,
   } = useLockerHub();
+
+  const [activeTabMode, setActiveTabMode] = useState<'logs' | 'matrix'>('logs');
 
   return (
     <div id="locker-hub-container" className="space-y-6 animate-in fade-in duration-200">
@@ -117,7 +119,7 @@ export const LockerHubView: React.FC = () => {
           />
         </div>
 
-        {/* Filter Pills */}
+        {/* Filter & View Switcher */}
         <div className="flex flex-wrap items-center gap-2">
           {/* Status Filter */}
           <div className="flex items-center gap-1 bg-[#070E1C] p-1 rounded-xl border border-[#142644]">
@@ -154,11 +156,51 @@ export const LockerHubView: React.FC = () => {
               </button>
             ))}
           </div>
+
+          {/* Display Mode: Logs Table vs Matrix View */}
+          <div className="flex items-center gap-1 bg-[#070E1C] p-1 rounded-xl border border-[#142644]">
+            <button
+              type="button"
+              onClick={() => setActiveTabMode('logs')}
+              className={`flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-lg transition cursor-pointer ${
+                activeTabMode === 'logs'
+                  ? 'bg-[#D4F938] text-black shadow'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+              title="Database Usage Logs View"
+            >
+              <List className="w-3.5 h-3.5" />
+              <span>Logs View</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTabMode('matrix')}
+              className={`flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-lg transition cursor-pointer ${
+                activeTabMode === 'matrix'
+                  ? 'bg-[#D4F938] text-black shadow'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+              title="Lockers Matrix View"
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+              <span>Cubicles</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* 3. Visual Locker Grid Matrix */}
-      <LockerGrid lockers={lockers} onSelectLocker={handleOpenLockerAction} />
+      {/* 3. Visual Content: Tabular Locker Usage Log (Child 3 of locker-hub-container) */}
+      <div id="locker-hub-main-content">
+        {activeTabMode === 'logs' ? (
+          <LockerUsageTable
+            logs={lockerUsageLogs}
+            allLockers={allLockers}
+            onSelectLockerByNumber={handleOpenLockerByNumber}
+          />
+        ) : (
+          <LockerGrid lockers={lockers} onSelectLocker={handleOpenLockerAction} />
+        )}
+      </div>
 
       {/* 4. Locker Action Modal */}
       <LockerActionDialog
@@ -176,3 +218,4 @@ export const LockerHubView: React.FC = () => {
 };
 
 export default LockerHubView;
+

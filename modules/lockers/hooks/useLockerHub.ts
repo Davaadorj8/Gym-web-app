@@ -16,6 +16,7 @@ export function useLockerHub() {
   const reduxLockers = useAppSelector((state) => state.gym.lockers);
   const registeredMembers = useAppSelector((state) => state.gym.members);
   const activeCheckIns = useAppSelector((state) => state.gym.activeCheckIns);
+  const lockerUsageLogs = useAppSelector((state) => state.gym.lockerUsageLogs);
   const user = useAppSelector((state) => state.auth.user);
   const staffName = user?.name || 'Staff Ops';
 
@@ -119,6 +120,28 @@ export function useLockerHub() {
     setIsActionDialogOpen(true);
   }, []);
 
+  const handleOpenLockerByNumber = useCallback(
+    (lockerNumber: number) => {
+      const found = lockers.find((l) => l.number === lockerNumber);
+      if (found) {
+        setSelectedLocker(found);
+        setIsActionDialogOpen(true);
+      } else {
+        // Fallback construct locker object
+        const fallbackLocker: Locker = {
+          id: `loc-${lockerNumber}`,
+          number: lockerNumber,
+          gender: lockerNumber <= 20 ? 'MALE' : lockerNumber <= 35 ? 'FEMALE' : 'UNISEX',
+          zone: lockerNumber > 35 ? 'VIP' : lockerNumber > 20 ? 'WOMEN' : 'MEN',
+          status: 'AVAILABLE',
+        };
+        setSelectedLocker(fallbackLocker);
+        setIsActionDialogOpen(true);
+      }
+    },
+    [lockers]
+  );
+
   const handleCloseLockerAction = useCallback(() => {
     setIsActionDialogOpen(false);
     setSelectedLocker(null);
@@ -209,6 +232,7 @@ export function useLockerHub() {
     stats,
     registeredMembers,
     activeCheckIns,
+    lockerUsageLogs,
     searchQuery,
     setSearchQuery,
     statusFilter,
@@ -222,6 +246,7 @@ export function useLockerHub() {
     viewMode,
     setViewMode,
     handleOpenLockerAction,
+    handleOpenLockerByNumber,
     handleCloseLockerAction,
     handleAssignLocker,
     handleReleaseLocker,
