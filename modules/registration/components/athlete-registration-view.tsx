@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { showToast, setActiveTab } from '@/features/ui/uiSlice';
 import { addClient } from '@/modules/clients';
@@ -9,12 +9,10 @@ import {
   User,
   Mail,
   Phone,
-  Calendar,
   Box,
   Clock,
   Camera,
   Check,
-  CheckCircle,
   CreditCard,
   Banknote,
   ArrowRightLeft,
@@ -23,6 +21,11 @@ import {
   Plus,
   Minus,
   CheckCircle2,
+  Trash2,
+  Upload,
+  RefreshCw,
+  X,
+  Sparkles,
 } from 'lucide-react';
 
 export default function AthleteRegistrationView() {
@@ -41,6 +44,15 @@ export default function AthleteRegistrationView() {
   const [medicalNotes, setMedicalNotes] = useState('');
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
 
+  // Realtime Camera State
+  const [isCameraActive, setIsCameraActive] = useState(false);
+  const [isConnectingCamera, setIsConnectingCamera] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   // Membership & Duration Selection
   const [selectedPlanId, setSelectedPlanId] = useState<string>(() => {
     return membershipPlans?.[0]?.id || 'plan-starter-1m';
@@ -51,7 +63,7 @@ export default function AthleteRegistrationView() {
     return found || membershipPlans[0];
   }, [membershipPlans, selectedPlanId]);
 
-  // Duration in Months (ticker / custom duration)
+  // Duration in Months (ticker stepper only)
   const [selectedDurationMonths, setSelectedDurationMonths] = useState<number>(() => {
     return selectedPlan?.durationMonths || 1;
   });
@@ -102,16 +114,108 @@ export default function AthleteRegistrationView() {
     membershipType: string;
   } | null>(null);
 
-  // Photo Capture Simulation / File Input
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleTriggerPhoto = () => {
-    if (photoUrl) {
-      setPhotoUrl(null);
-      return;
+  // Stop camera helper
+  const stopCamera = () => {
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+      mediaStreamRef.current = null;
     }
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    setIsCameraActive(false);
+    setIsConnectingCamera(false);
+    setCameraError(null);
+  };
+
+  // Start camera device helper
+  const startCamera = async () => {
+    setCameraError(null);
+    setIsConnectingCamera(true);
+    setIsCameraActive(true);
+
+    try {
+      if (typeof navigator === 'undefined' || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Camera access API is not supported in this environment.');
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: 'user',
+          width: { ideal: 640 },
+          height: { ideal: 640 },
+        },
+        audio: false,
+      });
+
+      mediaStreamRef.current = stream;
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        try {
+          await videoRef.current.play();
+        } catch {
+          // Ignore auto-play errors
+        }
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Unable to connect to camera device';
+      if (msg.toLowerCase().includes('permission') || msg.toLowerCase().includes('notallowed') || msg.toLowerCase().includes('denied')) {
+        setCameraError('Camera access permission was denied. Please grant camera permission in your browser or upload an image file.');
+      } else if (msg.toLowerCase().includes('notfound') || msg.toLowerCase().includes('devicesnotfound')) {
+        setCameraError('No camera hardware device found on this system. You can upload an image file below.');
+      } else {
+        setCameraError('Could not start camera feed. Please check device permissions or upload a photo.');
+      }
+    } finally {
+      setIsConnectingCamera(false);
+    }
+  };
+
+  // Attach stream to video tag whenever camera becomes active and element is ready
+  useEffect(() => {
+    if (isCameraActive && videoRef.current && mediaStreamRef.current) {
+      videoRef.current.srcObject = mediaStreamRef.current;
+      videoRef.current.play().catch(() => {});
+    }
+  }, [isCameraActive]);
+
+  // Clean up camera stream on unmount
+  useEffect(() => {
+    return () => {
+      if (mediaStreamRef.current) {
+        mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+      }
+    };
+  }, []);
+
+  // Capture realtime frame snapshot
+  const handleCaptureSnapshot = () => {
+    if (!videoRef.current) return;
+    const video = videoRef.current;
+
+    const canvas = canvasRef.current || document.createElement('canvas');
+    const width = video.videoWidth || 640;
+    const height = video.videoHeight || 640;
+    const size = Math.min(width, height);
+
+    canvas.width = 480;
+    canvas.height = 480;
+    const ctx = canvas.getContext('2d');
+
+    if (ctx) {
+      const sx = (width - size) / 2;
+      const sy = (height - size) / 2;
+      ctx.drawImage(video, sx, sy, size, size, 0, 0, 480, 480);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+      setPhotoUrl(dataUrl);
+      stopCamera();
+      dispatch(
+        showToast({
+          message: 'Realtime athlete profile photo captured successfully!',
+          type: 'success',
+        })
+      );
     }
   };
 
@@ -122,9 +226,10 @@ export default function AthleteRegistrationView() {
       reader.onload = (event) => {
         if (event.target?.result) {
           setPhotoUrl(event.target.result as string);
+          stopCamera();
           dispatch(
             showToast({
-              message: 'Athlete profile photo captured successfully!',
+              message: 'Athlete profile photo uploaded successfully!',
               type: 'success',
             })
           );
@@ -133,9 +238,6 @@ export default function AthleteRegistrationView() {
       reader.readAsDataURL(file);
     }
   };
-
-  // Duration Quick Presets
-  const durationPresets = [1, 2, 3, 6, 12];
 
   const handleStepDuration = (delta: number) => {
     setSelectedDurationMonths((prev) => Math.max(1, Math.min(60, prev + delta)));
@@ -230,6 +332,7 @@ export default function AthleteRegistrationView() {
       setEmergencyContact('');
       setMedicalNotes('');
       setPhotoUrl(null);
+      stopCamera();
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : 'Failed to register athlete';
       dispatch(showToast({ message: errorMsg, type: 'error' }));
@@ -251,15 +354,15 @@ export default function AthleteRegistrationView() {
 
   return (
     <div className="space-y-6 pb-12 max-w-7xl mx-auto">
-      {/* Hidden file input for Photo Capture */}
+      {/* Hidden file input for Photo Upload fallback */}
       <input
         ref={fileInputRef}
         type="file"
         accept="image/*"
-        capture="user"
         onChange={handlePhotoUpload}
         className="hidden"
       />
+      <canvas ref={canvasRef} className="hidden" />
 
       {/* Page Title & Subtitle */}
       <div>
@@ -267,7 +370,7 @@ export default function AthleteRegistrationView() {
           Athlete Registration &amp; Plan Selection
         </h1>
         <p className="text-[11px] font-mono font-bold text-slate-400 tracking-wider uppercase mt-1">
-          REGISTER NEW MEMBER &bull; SELECT ADMIN MEMBERSHIP PLAN &bull; SET CUSTOM DURATION &bull; CONFIRM PAYMENT
+          REGISTER NEW MEMBER &bull; REALTIME CAMERA VERIFICATION &bull; SELECT ADMIN MEMBERSHIP PLAN &bull; INTERACTIVE DURATION TICKER
         </p>
       </div>
 
@@ -309,7 +412,7 @@ export default function AthleteRegistrationView() {
       {/* Main 2-Column Form Layout */}
       <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* ========================================================================= */}
-        {/* LEFT COLUMN: ATHLETE PERSONAL INFORMATION (7 COLS)                        */}
+        {/* LEFT COLUMN: ATHLETE PERSONAL INFORMATION (6 COLS)                        */}
         {/* ========================================================================= */}
         <div className="lg:col-span-6 space-y-6">
           <div className="bg-[#0A1324] border border-[#142644] rounded-2xl p-6 sm:p-7 space-y-5 shadow-xl">
@@ -456,44 +559,179 @@ export default function AthleteRegistrationView() {
               />
             </div>
 
-            {/* Athlete Profile Photo Box */}
-            <div className="space-y-2 pt-2 border-t border-[#142644]">
-              <div className="flex items-center gap-2 text-[11px] font-mono font-bold text-slate-400 uppercase tracking-wider">
-                <Camera className="w-3.5 h-3.5 text-lime-400" />
-                <span>ATHLETE PROFILE PHOTO</span>
+            {/* Athlete Profile Photo Box & Realtime Camera Section */}
+            <div className="space-y-3 pt-2 border-t border-[#142644]">
+              <div className="flex items-center justify-between text-[11px] font-mono font-bold text-slate-400 uppercase tracking-wider">
+                <div className="flex items-center gap-2">
+                  <Camera className="w-3.5 h-3.5 text-lime-400" />
+                  <span>ATHLETE PROFILE PHOTO</span>
+                </div>
+                {isCameraActive && (
+                  <span className="flex items-center gap-1.5 text-red-400 font-bold text-[10px] animate-pulse">
+                    <span className="w-2 h-2 rounded-full bg-red-500 inline-block" />
+                    LIVE CAMERA ACTIVE
+                  </span>
+                )}
               </div>
 
-              <div className="bg-[#070E1C] border border-[#142644] rounded-xl p-4 flex items-center gap-4">
-                <div className="w-16 h-16 rounded-xl bg-[#0A1324] border border-[#142644] flex flex-col items-center justify-center shrink-0 overflow-hidden relative">
-                  {photoUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={photoUrl} alt="Athlete" className="w-full h-full object-cover" />
+              {/* Realtime Live Camera Viewfinder (when active) */}
+              {isCameraActive ? (
+                <div className="bg-[#070E1C] border-2 border-lime-400/80 rounded-2xl p-4 space-y-3 shadow-[0_0_25px_rgba(163,230,53,0.2)]">
+                  {cameraError ? (
+                    <div className="p-4 bg-red-950/50 border border-red-500/40 rounded-xl space-y-3 text-center">
+                      <p className="text-xs text-red-300 font-medium">{cameraError}</p>
+                      <div className="flex items-center justify-center gap-2">
+                        <button
+                          type="button"
+                          onClick={startCamera}
+                          className="px-3 py-1.5 bg-lime-400 text-black text-xs font-extrabold rounded-lg hover:bg-lime-300 transition cursor-pointer flex items-center gap-1.5"
+                        >
+                          <RefreshCw className="w-3.5 h-3.5" />
+                          <span>Retry Camera</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="px-3 py-1.5 bg-slate-800 text-slate-300 text-xs font-semibold rounded-lg hover:bg-slate-700 transition cursor-pointer flex items-center gap-1.5"
+                        >
+                          <Upload className="w-3.5 h-3.5" />
+                          <span>Upload Image</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={stopCamera}
+                          className="px-3 py-1.5 bg-transparent text-slate-400 text-xs font-semibold hover:text-white transition cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
                   ) : (
                     <>
-                      <Camera className="w-5 h-5 text-slate-500 mb-1" />
-                      <span className="text-[9px] font-mono text-slate-500 font-bold">No Photo</span>
+                      {/* Video Stream Container with Face Target Overlay */}
+                      <div className="relative aspect-square max-w-[280px] mx-auto bg-black rounded-xl overflow-hidden border border-[#142644] flex items-center justify-center">
+                        <video
+                          ref={videoRef}
+                          autoPlay
+                          playsInline
+                          muted
+                          className="w-full h-full object-cover -scale-x-100"
+                        />
+
+                        {/* Circular Face Guide Reticle Overlay */}
+                        <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                          <div className="w-44 h-44 rounded-full border-2 border-dashed border-lime-400/70 shadow-[0_0_15px_rgba(163,230,53,0.3)] flex items-center justify-center">
+                            <span className="text-[9px] font-mono text-lime-300 font-bold bg-black/60 px-2 py-0.5 rounded-full">
+                              Center Face
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Top Live Badge */}
+                        <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 bg-black/70 px-2 py-0.5 rounded-full border border-red-500/40">
+                          <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping" />
+                          <span className="text-[9px] font-mono font-bold text-white tracking-wider">REC</span>
+                        </div>
+                      </div>
+
+                      {/* Camera Control Actions */}
+                      <div className="flex items-center justify-center gap-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={handleCaptureSnapshot}
+                          className="bg-[#A3E635] hover:bg-[#bef264] active:scale-[0.98] text-black font-black text-xs py-2.5 px-5 rounded-xl flex items-center gap-2 shadow-[0_0_15px_rgba(163,230,53,0.35)] transition-all cursor-pointer"
+                        >
+                          <Camera className="w-4 h-4 stroke-[2.5]" />
+                          <span>Capture Realtime Snapshot</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={stopCamera}
+                          className="bg-[#0A1324] hover:bg-[#142644] text-slate-300 font-bold text-xs py-2.5 px-3.5 rounded-xl flex items-center gap-1.5 border border-[#142644] transition-colors cursor-pointer"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                          <span>Cancel</span>
+                        </button>
+                      </div>
                     </>
                   )}
                 </div>
-
-                <div className="space-y-2">
-                  <div>
-                    <h4 className="text-xs font-bold text-white">Webcam Profile Capture</h4>
-                    <p className="text-[11px] text-slate-400 leading-tight">
-                      Take a live webcam shot for front-desk athlete visual verification.
-                    </p>
+              ) : (
+                /* Standard Photo Display & Trigger View */
+                <div className="bg-[#070E1C] border border-[#142644] rounded-xl p-4 flex items-center gap-4">
+                  <div className="w-16 h-16 rounded-xl bg-[#0A1324] border border-[#142644] flex flex-col items-center justify-center shrink-0 overflow-hidden relative group">
+                    {photoUrl ? (
+                      <>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={photoUrl} alt="Athlete" className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                          <button
+                            type="button"
+                            onClick={() => setPhotoUrl(null)}
+                            title="Remove photo"
+                            className="p-1 rounded-lg bg-red-600 text-white hover:bg-red-500 transition cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <Camera className="w-5 h-5 text-slate-500 mb-1" />
+                        <span className="text-[9px] font-mono text-slate-500 font-bold">No Photo</span>
+                      </>
+                    )}
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={handleTriggerPhoto}
-                    className="bg-[#A3E635] hover:bg-[#bef264] text-black font-extrabold text-[11px] py-1.5 px-3.5 rounded-lg flex items-center gap-1.5 shadow-[0_0_10px_rgba(163,230,53,0.25)] transition-all cursor-pointer"
-                  >
-                    <Camera className="w-3.5 h-3.5 stroke-[2.5]" />
-                    <span>{photoUrl ? 'Retake Photo' : 'Take Photo'}</span>
-                  </button>
+                  <div className="space-y-2 flex-1 min-w-0">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-xs font-bold text-white">Webcam Profile Capture</h4>
+                        {photoUrl && (
+                          <span className="text-[9px] font-mono font-bold text-emerald-400 bg-emerald-950/60 border border-emerald-500/40 px-1.5 py-0.2 rounded">
+                            VERIFIED
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-slate-400 leading-tight">
+                        Connect camera device to take a realtime photo for member profiles &amp; desk verification.
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={startCamera}
+                        disabled={isConnectingCamera}
+                        className="bg-[#A3E635] hover:bg-[#bef264] active:scale-[0.98] text-black font-extrabold text-[11px] py-1.5 px-3.5 rounded-lg flex items-center gap-1.5 shadow-[0_0_10px_rgba(163,230,53,0.25)] transition-all cursor-pointer disabled:opacity-50"
+                      >
+                        <Camera className="w-3.5 h-3.5 stroke-[2.5]" />
+                        <span>{photoUrl ? 'Retake via Camera' : 'Connect Camera & Capture'}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="bg-[#0A1324] hover:bg-[#142644] text-slate-300 font-semibold text-[11px] py-1.5 px-3 rounded-lg flex items-center gap-1.5 border border-[#142644] transition-colors cursor-pointer"
+                        title="Or upload an existing image file"
+                      >
+                        <Upload className="w-3 h-3 text-slate-400" />
+                        <span>Upload File</span>
+                      </button>
+
+                      {photoUrl && (
+                        <button
+                          type="button"
+                          onClick={() => setPhotoUrl(null)}
+                          className="text-red-400 hover:text-red-300 font-mono text-[10px] px-2 py-1 transition cursor-pointer"
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>
@@ -566,57 +804,55 @@ export default function AthleteRegistrationView() {
               })}
             </div>
 
-            {/* Section 3: SELECT DURATION (With +1 Month Ticker & Presets) */}
-            <div className="space-y-3 pt-3 border-t border-[#142644]">
+            {/* Section 3: SELECT DURATION (Interactive +1 / -1 Month Ticker) */}
+            <div className="space-y-4 pt-3 border-t border-[#142644]">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 text-lime-400 font-extrabold text-xs uppercase tracking-wider font-mono">
                   <Clock className="w-4 h-4" />
                   <span>3. SELECT DURATION</span>
                 </div>
+                <span className="text-[11px] font-mono text-slate-400">
+                  Custom Stepper
+                </span>
+              </div>
 
-                {/* Ticker / Stepper (+1 / -1 Month) */}
-                <div className="flex items-center gap-1.5 bg-[#070E1C] border border-[#142644] rounded-lg p-1">
+              {/* Prominent Interactive Ticker / Stepper (+1 / -1 Month) */}
+              <div className="bg-[#070E1C] border border-[#142644] rounded-2xl p-4 flex items-center justify-between gap-4">
+                <div className="space-y-0.5">
+                  <div className="text-xs font-bold text-white">Membership Duration</div>
+                  <div className="text-[11px] text-slate-400 font-mono">Adjust in 1-month increments</div>
+                </div>
+
+                <div className="flex items-center gap-3 bg-[#0A1324] border border-[#1E3A66] rounded-xl p-1.5 shadow-inner">
                   <button
                     type="button"
                     onClick={() => handleStepDuration(-1)}
-                    className="w-6 h-6 rounded bg-[#0A1324] hover:bg-[#142644] text-slate-300 flex items-center justify-center transition cursor-pointer"
-                    title="Decrease duration by 1 month"
+                    disabled={selectedDurationMonths <= 1}
+                    className="w-9 h-9 rounded-lg bg-[#070E1C] hover:bg-[#142644] disabled:opacity-30 disabled:hover:bg-[#070E1C] text-white flex items-center justify-center transition active:scale-95 cursor-pointer"
+                    title="Decrease duration by 1 month (-1)"
                   >
-                    <Minus className="w-3.5 h-3.5" />
+                    <Minus className="w-4 h-4 stroke-[2.5]" />
                   </button>
-                  <span className="text-xs font-mono font-bold text-lime-400 px-2 min-w-[3rem] text-center">
-                    {selectedDurationMonths} Mo
-                  </span>
+
+                  <div className="px-3 min-w-[5.5rem] text-center">
+                    <span className="text-lg font-black font-mono text-lime-400">
+                      {selectedDurationMonths}
+                    </span>
+                    <span className="text-xs font-mono font-bold text-slate-300 ml-1.5">
+                      {selectedDurationMonths === 1 ? 'Month' : 'Months'}
+                    </span>
+                  </div>
+
                   <button
                     type="button"
                     onClick={() => handleStepDuration(1)}
-                    className="w-6 h-6 rounded bg-[#0A1324] hover:bg-[#142644] text-slate-300 flex items-center justify-center transition cursor-pointer"
-                    title="Increase duration by 1 month (+1 ticker)"
+                    disabled={selectedDurationMonths >= 60}
+                    className="w-9 h-9 rounded-lg bg-lime-400 hover:bg-lime-300 disabled:opacity-30 text-black flex items-center justify-center transition active:scale-95 cursor-pointer shadow-[0_0_10px_rgba(163,230,53,0.3)]"
+                    title="Increase duration by 1 month (+1)"
                   >
-                    <Plus className="w-3.5 h-3.5" />
+                    <Plus className="w-4 h-4 stroke-[3]" />
                   </button>
                 </div>
-              </div>
-
-              {/* Quick Presets Pills */}
-              <div className="grid grid-cols-5 gap-2">
-                {durationPresets.map((m) => {
-                  const isPresetActive = selectedDurationMonths === m;
-                  return (
-                    <button
-                      key={m}
-                      type="button"
-                      onClick={() => setSelectedDurationMonths(m)}
-                      className={`py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                        isPresetActive
-                          ? 'bg-[#A3E635] text-black font-extrabold shadow-[0_0_10px_rgba(163,230,53,0.25)]'
-                          : 'bg-[#070E1C] border border-[#142644] text-slate-400 hover:text-white hover:border-[#1E3A66]'
-                      }`}
-                    >
-                      {m} Mo
-                    </button>
-                  );
-                })}
               </div>
 
               {/* Summary / Calculation Box */}
@@ -647,7 +883,7 @@ export default function AthleteRegistrationView() {
 
                 <div className="flex items-center justify-between pt-2 border-t border-[#142644] text-xs">
                   <span className="text-slate-400 font-medium">
-                    Calculated Fee ({selectedDurationMonths} Mo):
+                    Calculated Fee ({selectedDurationMonths} {selectedDurationMonths === 1 ? 'Month' : 'Months'}):
                   </span>
                   <span className="text-base font-black font-mono text-white">
                     ${calculatedFee.toFixed(2)}

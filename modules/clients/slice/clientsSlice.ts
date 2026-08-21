@@ -45,7 +45,7 @@ export const fetchClients = createAsyncThunk(
         return rejectWithValue(json.error || 'Failed to fetch clients');
       }
 
-      return json.data as Client[];
+      return (json.data || json.clients || []) as Client[];
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Network error';
       return rejectWithValue(msg);
@@ -68,7 +68,7 @@ export const addClient = createAsyncThunk(
         return rejectWithValue(json.error || 'Failed to create client');
       }
 
-      return json.data as Client;
+      return (json.data || json.client) as Client;
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Network error';
       return rejectWithValue(msg);

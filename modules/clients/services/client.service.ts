@@ -64,7 +64,7 @@ export class ClientService {
   /**
    * Create a new client record
    */
-  static async createClient(data: ClientFormData & { trainerId?: string }): Promise<Client> {
+  static async createClient(data: ClientFormData & { trainerId?: string | null }): Promise<Client> {
     try {
       if (prisma && prisma.client) {
         const newClient = await prisma.client.create({
@@ -73,10 +73,10 @@ export class ClientService {
             firstName: data.firstName,
             lastName: data.lastName,
             email: data.email || `${data.firstName.toLowerCase()}.${data.lastName.toLowerCase()}${Math.floor(Math.random() * 100)}@archegym.com`,
-            phone: data.phone,
+            phone: data.phone || null,
             status: 'ACTIVE',
-            fitnessGoal: data.fitnessGoals || 'General Fitness & Performance',
-            fitnessLevel: 'INTERMEDIATE',
+            fitnessGoal: data.fitnessGoals || data.fitnessGoal || 'General Fitness & Performance',
+            fitnessLevel: (data.fitnessLevel as any) || 'INTERMEDIATE',
             notes: data.medicalNotes ? `Medical: ${data.medicalNotes}` : null,
           },
           include: {
@@ -98,22 +98,23 @@ export class ClientService {
       firstName: data.firstName,
       lastName: data.lastName,
       email: data.email || `${data.firstName.toLowerCase()}.${data.lastName.toLowerCase()}@example.com`,
-      phone: data.phone,
+      phone: data.phone || null,
       status: 'ACTIVE',
-      fitnessGoal: data.fitnessGoals || 'General Fitness',
+      fitnessGoal: data.fitnessGoals || data.fitnessGoal || 'General Fitness',
       fitnessLevel: 'INTERMEDIATE',
       joinedDate: new Date().toISOString(),
-      gender: data.gender,
-      dateOfBirth: data.dateOfBirth,
-      membershipType: data.membershipType,
+      gender: (data.gender as 'MALE' | 'FEMALE' | 'OTHER') || 'MALE',
+      dateOfBirth: data.dateOfBirth || undefined,
+      membershipType: data.membershipType || 'STANDARD',
       startDate: data.startDate || new Date().toISOString().split('T')[0],
-      rfidTag: data.rfidTag,
-      emergencyContactName: data.emergencyContactName,
-      emergencyContactPhone: data.emergencyContactPhone,
-      emergencyRelation: data.emergencyRelation,
-      medicalNotes: data.medicalNotes,
-      fitnessGoals: data.fitnessGoals,
-      waiverSigned: data.waiverSigned,
+      rfidTag: data.rfidTag || undefined,
+      emergencyContactName: data.emergencyContactName || data.emergencyContact || undefined,
+      emergencyContactPhone: data.emergencyContactPhone || undefined,
+      emergencyRelation: data.emergencyRelation || undefined,
+      medicalNotes: data.medicalNotes || undefined,
+      fitnessGoals: data.fitnessGoals || data.fitnessGoal || undefined,
+      waiverSigned: data.waiverSigned ?? true,
+      assignedTrainerId: data.assignedTrainerId || data.trainerId || undefined,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       _count: { workoutSessions: 0 },

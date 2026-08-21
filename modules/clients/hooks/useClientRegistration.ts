@@ -24,6 +24,7 @@ export function useClientRegistration({ onSuccess, onClose }: UseClientRegistrat
       const createdClient = await dispatch(addClient(data)).unwrap();
 
       // 2. Synchronize with Gym Check-In Member list so desk is immediately ready
+      const memType = (data.membershipType || 'STANDARD').toUpperCase();
       const planNameMap: Record<string, string> = {
         STANDARD: 'Standard Monthly (1 Mo)',
         PREMIUM: '3 Months - Pro Athlete (3 Mo)',
@@ -47,7 +48,7 @@ export function useClientRegistration({ onSuccess, onClose }: UseClientRegistrat
 
       const regId = `ARC-${Math.floor(1000 + Math.random() * 9000)}`;
       const startDate = data.startDate || new Date().toISOString().split('T')[0];
-      const duration = durationMap[data.membershipType] || 1;
+      const duration = durationMap[memType] || 1;
 
       const expiryDateObj = new Date(startDate);
       expiryDateObj.setMonth(expiryDateObj.getMonth() + duration);
@@ -61,22 +62,22 @@ export function useClientRegistration({ onSuccess, onClose }: UseClientRegistrat
         email:
           data.email ||
           `${data.firstName.toLowerCase()}.${data.lastName.toLowerCase()}@example.com`,
-        phone: data.phone,
-        dob: data.dateOfBirth,
-        gender: data.gender,
+        phone: data.phone || 'N/A',
+        dob: data.dateOfBirth || undefined,
+        gender: data.gender || undefined,
         emergencyContact: data.emergencyContactName
           ? `${data.emergencyContactName} (${data.emergencyRelation || 'Contact'} - ${
               data.emergencyContactPhone || 'N/A'
             })`
-          : undefined,
-        medicalNotes: data.medicalNotes,
+          : data.emergencyContact || undefined,
+        medicalNotes: data.medicalNotes || undefined,
         photoUrl: null,
-        planId: `plan-${data.membershipType.toLowerCase()}`,
-        planName: planNameMap[data.membershipType] || 'Standard Pass',
+        planId: `plan-${memType.toLowerCase()}`,
+        planName: planNameMap[memType] || data.membershipType || 'Standard Pass',
         durationMonths: duration,
         startDate,
         expiryDate,
-        totalFee: feeMap[data.membershipType] || 110,
+        totalFee: feeMap[memType] || 110,
         paymentStatus: 'PAID',
         paymentMethod: 'CARD',
         registeredByStaffId: 'staff-active',
