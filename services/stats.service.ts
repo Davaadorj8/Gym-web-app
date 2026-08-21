@@ -4,7 +4,9 @@ import { ClientService } from './client.service';
 import { WorkoutService } from './workout.service';
 
 export class StatsService {
-  static async getDashboardStats(): Promise<DashboardStats> {
+  static async getDashboardStats(userRole: string = 'ADMIN'): Promise<DashboardStats> {
+    const isAdmin = userRole === 'ADMIN' || userRole === 'SUPER_ADMIN' || userRole === 'OWNER';
+
     if (isDatabaseConfigured()) {
       try {
         const [totalClients, activeClients, pendingClients, totalPlans, sessionCount] = await Promise.all([
@@ -28,7 +30,7 @@ export class StatsService {
           totalPlans,
           completedSessionsWeek: sessionCount || 48,
           avgRetentionRate: totalClients > 0 ? Math.round((activeClients / totalClients) * 100) : 94,
-          revenueMtd: activeClients * 180 + 1200,
+          ...(isAdmin ? { revenueMtd: activeClients * 180 + 1200 } : {}),
         };
       } catch (err) {
         console.warn('Prisma stats query failed, calculating fallback stats:', err);
@@ -47,7 +49,8 @@ export class StatsService {
       totalPlans: plans.length,
       completedSessionsWeek: 52,
       avgRetentionRate: 94.2,
-      revenueMtd: 8450,
+      ...(isAdmin ? { revenueMtd: 8450 } : {}),
     };
   }
 }
+

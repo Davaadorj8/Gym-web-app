@@ -30,6 +30,10 @@ export default function ClientTable() {
   const { items: clients, loading, error, filterStatus, searchQuery } = useAppSelector(
     (state) => state.clients
   );
+  const user = useAppSelector((state) => state.auth.user);
+  const role = user?.role || 'ADMIN';
+  const isAdmin = role === 'ADMIN' || role === 'SUPER_ADMIN' || role === 'OWNER';
+
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -37,6 +41,10 @@ export default function ClientTable() {
   }, [dispatch, filterStatus, searchQuery]);
 
   const handleDelete = async (id: string, name: string) => {
+    if (!isAdmin) {
+      dispatch(showToast({ message: 'Forbidden: Admin privilege required to delete athletes', type: 'error' }));
+      return;
+    }
     try {
       await dispatch(deleteClient(id)).unwrap();
       dispatch(showToast({ message: `Athlete ${name} was deleted successfully`, type: 'info' }));
@@ -258,14 +266,16 @@ export default function ClientTable() {
                           >
                             <Edit className="w-4 h-4" />
                           </button>
-                          <button
-                            id={`btn-delete-client-${client.id}`}
-                            onClick={() => setDeleteConfirmId(client.id)}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
-                            title="Delete Athlete"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          {isAdmin && (
+                            <button
+                              id={`btn-delete-client-${client.id}`}
+                              onClick={() => setDeleteConfirmId(client.id)}
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
+                              title="Delete Athlete (Admin Only)"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
                         </>
                       )}
                     </div>

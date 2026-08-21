@@ -3,6 +3,7 @@
 import React from 'react';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { setActiveTab, NavigationTab, showToast } from '@/features/ui/uiSlice';
+import { setRole } from '@/features/auth/authSlice';
 import {
   LayoutDashboard,
   UserPlus,
@@ -11,35 +12,55 @@ import {
   Package,
   ShieldCheck,
   Zap,
-  LogOut,
   ChevronRight,
-  Sparkles,
+  Shield,
+  UserCog,
 } from 'lucide-react';
 
 export default function Sidebar() {
   const dispatch = useAppDispatch();
   const activeTab = useAppSelector((state) => state.ui.activeTab);
   const isSidebarOpen = useAppSelector((state) => state.ui.isSidebarOpen);
+  const user = useAppSelector((state) => state.auth.user);
+  const role = user?.role || 'ADMIN';
+  const isAdmin = role === 'ADMIN' || role === 'SUPER_ADMIN' || role === 'OWNER';
 
-  const navItems: {
+  const allNavItems: {
     id: NavigationTab;
     label: string;
     icon: React.ComponentType<{ className?: string }>;
     badge?: string;
+    adminOnly?: boolean;
   }[] = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'registration', label: 'Registration', icon: UserPlus, badge: 'New' },
     { id: 'check-in-desk', label: 'Check-in Desk', icon: UserCheck },
-    { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+    { id: 'analytics', label: 'Analytics', icon: BarChart3, adminOnly: true },
     { id: 'inventory', label: 'Inventory', icon: Package },
-    { id: 'admin-panel', label: 'Admin Panel', icon: ShieldCheck },
+    { id: 'admin-panel', label: 'Admin Panel', icon: ShieldCheck, adminOnly: true },
   ];
+
+  const visibleNavItems = allNavItems.filter((item) => !item.adminOnly || isAdmin);
 
   if (!isSidebarOpen) return null;
 
   const handleCheckInQuick = () => {
     dispatch(setActiveTab('check-in-desk'));
     dispatch(showToast({ message: 'Opened Check-in Desk terminal', type: 'info' }));
+  };
+
+  const toggleRole = () => {
+    const nextRole = isAdmin ? 'STAFF' : 'ADMIN';
+    dispatch(setRole(nextRole));
+    if (nextRole === 'STAFF' && (activeTab === 'admin-panel' || activeTab === 'analytics')) {
+      dispatch(setActiveTab('dashboard'));
+    }
+    dispatch(
+      showToast({
+        message: `Active role switched to: ${nextRole}`,
+        type: nextRole === 'ADMIN' ? 'success' : 'info',
+      })
+    );
   };
 
   return (
@@ -77,11 +98,22 @@ export default function Sidebar() {
 
         {/* Navigation Section */}
         <div className="px-3 py-3">
-          <div className="text-[10px] font-extrabold tracking-widest text-slate-500 uppercase px-3 mb-2 font-mono">
-            Navigation Menu
+          <div className="flex items-center justify-between px-3 mb-2">
+            <span className="text-[10px] font-extrabold tracking-widest text-slate-500 uppercase font-mono">
+              Navigation Menu
+            </span>
+            <span
+              className={`text-[9px] font-mono font-bold px-1.5 py-0.2 rounded border ${
+                isAdmin
+                  ? 'bg-lime-400/10 text-lime-400 border-lime-400/30'
+                  : 'bg-cyan-400/10 text-cyan-400 border-cyan-400/30'
+              }`}
+            >
+              {role} VIEW
+            </span>
           </div>
           <nav className="space-y-1">
-            {navItems.map((item) => {
+            {visibleNavItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
               return (
@@ -111,33 +143,48 @@ export default function Sidebar() {
         </div>
       </div>
 
-      {/* Footer User Profile & System Status */}
+      {/* Footer User Profile & RBAC Switcher */}
       <div className="p-3 border-t border-[#142644] space-y-2">
         <div className="p-3 bg-[#0A1324] border border-[#142644] rounded-xl flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-full bg-emerald-800 text-emerald-300 font-bold text-xs flex items-center justify-center border border-emerald-500/30">
-              AO
+            <div
+              className={`w-8 h-8 rounded-full font-bold text-xs flex items-center justify-center border ${
+                isAdmin
+                  ? 'bg-emerald-900/60 text-emerald-300 border-emerald-500/40'
+                  : 'bg-cyan-950 text-cyan-300 border-cyan-500/40'
+              }`}
+            >
+              {user?.avatarInitials || (isAdmin ? 'AA' : 'AS')}
             </div>
             <div>
               <div className="text-xs font-bold text-white leading-tight">
-                Arche Owner (Admin)
+                {user?.name || (isAdmin ? 'Arche Admin' : 'Arche Staff')}
               </div>
-              <div className="text-[10px] text-lime-400 flex items-center gap-1 font-medium mt-0.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-lime-400 animate-pulse"></span>
-                Owner (Admin)
+              <div
+                className={`text-[10px] flex items-center gap-1 font-medium mt-0.5 ${
+                  isAdmin ? 'text-lime-400' : 'text-cyan-400'
+                }`}
+              >
+                <span
+                  className={`w-1.5 h-1.5 rounded-full animate-pulse ${
+                    isAdmin ? 'bg-lime-400' : 'bg-cyan-400'
+                  }`}
+                ></span>
+                {isAdmin ? 'Admin (Supervisor)' : 'Staff Member'}
               </div>
             </div>
           </div>
           <button
             type="button"
-            onClick={() => dispatch(showToast({ message: 'Session active', type: 'info' }))}
-            className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-[#142644] transition-colors"
-            title="Account Menu"
+            onClick={toggleRole}
+            className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-[#142644] transition-colors flex items-center gap-1"
+            title={`Switch to ${isAdmin ? 'STAFF' : 'ADMIN'} role`}
           >
-            <LogOut className="w-4 h-4" />
+            <UserCog className="w-4 h-4 text-slate-300 hover:text-lime-400 transition-colors" />
           </button>
         </div>
       </div>
     </aside>
   );
 }
+

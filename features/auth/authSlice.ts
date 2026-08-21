@@ -1,10 +1,11 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import type { UserRole } from '@/types/next-auth';
 
 export interface UserProfile {
   id: string;
   name: string;
   email: string;
-  role: 'OWNER' | 'ADMIN' | 'TRAINER' | 'FRONT_DESK';
+  role: UserRole | 'OWNER' | 'ADMIN' | 'STAFF' | 'TRAINER' | 'FRONT_DESK';
   avatarInitials: string;
 }
 
@@ -17,13 +18,13 @@ interface AuthState {
 const initialState: AuthState = {
   user: {
     id: 'usr-1',
-    name: 'Arche Owner (Admin)',
+    name: 'Arche Admin (Supervisor)',
     email: 'admin@archegym.com',
-    role: 'OWNER',
-    avatarInitials: 'AO',
+    role: 'ADMIN',
+    avatarInitials: 'AA',
   },
   isAuthenticated: true,
-  token: 'mock-auth-token-arche-001',
+  token: 'auth-session-token-arche-001',
 };
 
 export const authSlice = createSlice({
@@ -33,6 +34,22 @@ export const authSlice = createSlice({
     setUser: (state, action: PayloadAction<UserProfile | null>) => {
       state.user = action.payload;
       state.isAuthenticated = !!action.payload;
+    },
+    setAuthUser: (state, action: PayloadAction<UserProfile | null>) => {
+      state.user = action.payload;
+      state.isAuthenticated = !!action.payload;
+    },
+    setRole: (state, action: PayloadAction<UserProfile['role']>) => {
+      if (state.user) {
+        state.user.role = action.payload;
+        if (action.payload === 'ADMIN') {
+          state.user.name = 'Arche Admin (Supervisor)';
+          state.user.avatarInitials = 'AA';
+        } else {
+          state.user.name = 'Arche Desk Staff';
+          state.user.avatarInitials = 'AS';
+        }
+      }
     },
     setToken: (state, action: PayloadAction<string | null>) => {
       state.token = action.payload;
@@ -45,6 +62,7 @@ export const authSlice = createSlice({
   },
 });
 
-export const { setUser, setToken, logout } = authSlice.actions;
+export const { setUser, setAuthUser, setRole, setToken, logout } = authSlice.actions;
 
 export default authSlice.reducer;
+

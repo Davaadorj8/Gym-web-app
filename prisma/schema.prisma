@@ -10,8 +10,9 @@ datasource db {
 }
 
 enum Role {
-  SUPER_ADMIN
   ADMIN
+  STAFF
+  SUPER_ADMIN
   TRAINER
   CLIENT
 }
@@ -34,7 +35,7 @@ model User {
   id            String          @id @default(cuid())
   email         String          @unique
   name          String?
-  role          Role            @default(TRAINER)
+  role          Role            @default(STAFF)
   avatarUrl     String?
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt

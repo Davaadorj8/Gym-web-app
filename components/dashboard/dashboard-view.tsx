@@ -35,6 +35,9 @@ export default function DashboardView() {
   const activeCheckIns = useAppSelector((state) => state.gym.activeCheckIns);
   const lockers = useAppSelector((state) => state.gym.lockers);
   const membershipPlans = useAppSelector((state) => state.gym.membershipPlans);
+  const user = useAppSelector((state) => state.auth.user);
+  const role = user?.role || 'ADMIN';
+  const isAdmin = role === 'ADMIN' || role === 'SUPER_ADMIN' || role === 'OWNER';
 
   // 1. Available / Occupied Lockers
   const totalLockers = facility.lockersTotal || lockers.length || 50;
@@ -220,26 +223,41 @@ export default function DashboardView() {
           </div>
         </div>
 
-        {/* Card 4: Total Subscriptions & Revenue */}
+        {/* Card 4: Total Subscriptions & Revenue (Admin) vs Roster Summary (Staff) */}
         <div className="bg-[#0A1324] border border-[#142644] rounded-2xl p-5 shadow-lg relative overflow-hidden flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-semibold">
-              TOTAL REVENUE LOGGED
+              {isAdmin ? 'TOTAL REVENUE LOGGED' : 'ACTIVE ATHLETE ROSTER'}
             </span>
-            <div className="w-8 h-8 rounded-xl bg-lime-400/10 border border-lime-400/30 flex items-center justify-center text-lime-400">
-              <DollarSign className="w-4 h-4" />
+            <div
+              className={`w-8 h-8 rounded-xl flex items-center justify-center ${
+                isAdmin
+                  ? 'bg-lime-400/10 border border-lime-400/30 text-lime-400'
+                  : 'bg-cyan-400/10 border border-cyan-400/30 text-cyan-400'
+              }`}
+            >
+              {isAdmin ? <DollarSign className="w-4 h-4" /> : <Users className="w-4 h-4" />}
             </div>
           </div>
           <div className="mt-3">
             <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-black text-lime-400 font-mono tracking-tight">
-                ${totalRevenue.toLocaleString()}
+              {isAdmin ? (
+                <span className="text-3xl font-black text-lime-400 font-mono tracking-tight">
+                  ${totalRevenue.toLocaleString()}
+                </span>
+              ) : (
+                <span className="text-3xl font-black text-cyan-400 font-mono tracking-tight">
+                  {activeMembers.length}
+                </span>
+              )}
+              <span className="text-sm font-mono text-slate-400">
+                {isAdmin ? 'MTD Total' : `/ ${members.length} Enrolled`}
               </span>
             </div>
             <div className="flex items-center justify-between mt-2 text-xs font-mono text-slate-400">
-              <span>{members.length} Registered Members</span>
-              <span className="text-lime-400 font-bold">
-                {activeMembers.length} Active
+              <span>{isAdmin ? `${members.length} Registered Members` : 'Staff Role View'}</span>
+              <span className={isAdmin ? 'text-lime-400 font-bold' : 'text-cyan-400 font-bold'}>
+                {isAdmin ? `${activeMembers.length} Active` : 'Financials Masked'}
               </span>
             </div>
           </div>

@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server';
 import { StatsService } from '@/services/stats.service';
+import { auth } from '@/lib/auth';
 
 export async function GET() {
   try {
-    const stats = await StatsService.getDashboardStats();
-    return NextResponse.json({ stats, success: true });
+    const session = await auth();
+    const userRole = session?.user?.role || 'ADMIN';
+
+    const stats = await StatsService.getDashboardStats(userRole);
+    return NextResponse.json({ stats, userRole, success: true });
   } catch (error: unknown) {
     console.error('Error fetching dashboard stats:', error);
     return NextResponse.json(
@@ -13,3 +17,4 @@ export async function GET() {
     );
   }
 }
+

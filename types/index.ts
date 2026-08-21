@@ -1,4 +1,4 @@
-export type Role = 'SUPER_ADMIN' | 'ADMIN' | 'TRAINER' | 'CLIENT';
+export type Role = 'ADMIN' | 'STAFF' | 'SUPER_ADMIN' | 'TRAINER' | 'CLIENT';
 export type ClientStatus = 'ACTIVE' | 'INACTIVE' | 'PENDING' | 'ARCHIVED';
 export type WorkoutLevel = 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' | 'ELITE';
 
@@ -80,5 +80,5 @@ export interface DashboardStats {
   totalPlans: number;
   completedSessionsWeek: number;
   avgRetentionRate: number;
-  revenueMtd: number;
+  revenueMtd?: number;
 }

@@ -9,6 +9,7 @@ import {
   setLockerStatus,
   LockerStatus,
 } from '@/features/gym/gymSlice';
+import { setRole } from '@/features/auth/authSlice';
 import {
   ShieldCheck,
   Lock,
@@ -19,6 +20,8 @@ import {
   Layers,
   Sparkles,
   Bell,
+  ShieldAlert,
+  UserCog,
 } from 'lucide-react';
 import StaffNotificationsSection from '@/components/staff/staff-notifications-section';
 
@@ -27,10 +30,38 @@ export default function AdminPanelView() {
   const facility = useAppSelector((state) => state.gym.facility);
   const lockers = useAppSelector((state) => state.gym.lockers);
   const membershipPlans = useAppSelector((state) => state.gym.membershipPlans);
+  const user = useAppSelector((state) => state.auth.user);
+  const role = user?.role || 'ADMIN';
+  const isAdmin = role === 'ADMIN' || role === 'SUPER_ADMIN' || role === 'OWNER';
 
   const [activeAdminSection, setActiveAdminSection] = useState<'FACILITY' | 'PLANS' | 'STAFF_ACTION'>('FACILITY');
   const [customLockerInput, setCustomLockerInput] = useState<string>(String(facility.lockersTotal));
   const [guestPassLimit, setGuestPassLimit] = useState(2);
+
+  if (!isAdmin) {
+    return (
+      <div className="bg-[#0A1324] border border-rose-500/30 rounded-2xl p-8 text-center max-w-xl mx-auto space-y-4 my-12">
+        <div className="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 flex items-center justify-center mx-auto">
+          <ShieldAlert className="w-6 h-6" />
+        </div>
+        <h3 className="text-lg font-extrabold text-white">Admin Privileges Required</h3>
+        <p className="text-xs text-slate-300 leading-relaxed">
+          Your active role is <span className="font-mono font-bold text-cyan-400">STAFF</span>. Facility configuration, membership pricing, and staff broadcasts require administrative credentials.
+        </p>
+        <button
+          type="button"
+          onClick={() => {
+            dispatch(setRole('ADMIN'));
+            dispatch(showToast({ message: 'Elevated role to ADMIN', type: 'success' }));
+          }}
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-lime-400 hover:bg-lime-300 text-black font-extrabold text-xs rounded-xl transition-all cursor-pointer"
+        >
+          <UserCog className="w-4 h-4" />
+          <span>Switch to Admin Role</span>
+        </button>
+      </div>
+    );
+  }
 
   const availableCount = lockers.filter((l) => l.status === 'AVAILABLE').length;
   const occupiedCount = lockers.filter((l) => l.status === 'OCCUPIED').length;
