@@ -1,33 +1,35 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { useAppDispatch } from '@/store/hooks';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { showToast, setActiveTab } from '@/features/ui/uiSlice';
+import { registerMember, PaymentStatus, PaymentMethod } from '@/features/gym/gymSlice';
+import { generateRegId, generateMemberId } from '@/lib/utils';
 import {
   User,
   Mail,
   Phone,
   Calendar,
   MapPin,
-  HeartPulse,
   Camera,
   Check,
   ShieldCheck,
   CreditCard,
   Banknote,
   ArrowRightLeft,
-  RefreshCw,
-  Sparkles,
   Upload,
   AlertCircle,
   X,
   Zap,
+  UserCheck,
+  Clock,
+  Sparkles,
 } from 'lucide-react';
 
 interface PlanOption {
   id: string;
   name: string;
-  category: 'Over 18' | 'Youth' | 'Classes';
+  category: 'Over 18' | 'Youth' | 'Classes' | 'VIP Elite';
   basePrice: number;
   baseDurationMonths: number;
   description: string;
@@ -40,7 +42,7 @@ const AVAILABLE_PLANS: PlanOption[] = [
     category: 'Over 18',
     basePrice: 110,
     baseDurationMonths: 1,
-    description: 'Default Base: 1 Month',
+    description: 'Full iron room & cardio area access with digital key',
   },
   {
     id: 'pro-3m',
@@ -48,7 +50,7 @@ const AVAILABLE_PLANS: PlanOption[] = [
     category: 'Over 18',
     basePrice: 299,
     baseDurationMonths: 3,
-    description: 'Default Base: 3 Months',
+    description: 'Quarterly membership + free locker assignment',
   },
   {
     id: 'semi-6m',
@@ -56,15 +58,15 @@ const AVAILABLE_PLANS: PlanOption[] = [
     category: 'Over 18',
     basePrice: 550,
     baseDurationMonths: 6,
-    description: 'Default Base: 6 Months',
+    description: '6 Months full gym + cross-training zone',
   },
   {
     id: 'elite-12m',
     name: '1 Year - Elite Unlimited',
-    category: 'Over 18',
+    category: 'VIP Elite',
     basePrice: 999,
     baseDurationMonths: 12,
-    description: 'Default Base: 12 Months',
+    description: '365 Days all-facility access + recovery spa lounge',
   },
   {
     id: 'youth-1m',
@@ -72,7 +74,7 @@ const AVAILABLE_PLANS: PlanOption[] = [
     category: 'Youth',
     basePrice: 85,
     baseDurationMonths: 1,
-    description: 'Default Base: 1 Month (Guardian Waiver)',
+    description: 'Student & Youth pass (Guardian waiver logged)',
   },
   {
     id: 'aerobics-2m',
@@ -80,12 +82,13 @@ const AVAILABLE_PLANS: PlanOption[] = [
     category: 'Classes',
     basePrice: 180,
     baseDurationMonths: 2,
-    description: 'Default Base: 2 Months Unlimited Classes',
+    description: '2 Months unlimited high-intensity studio classes',
   },
 ];
 
 export default function AthleteRegistrationView() {
   const dispatch = useAppDispatch();
+  const loggedInUser = useAppSelector((state) => state.auth.user);
 
   // Section 1: Personal Info
   const [firstName, setFirstName] = useState('');
@@ -113,8 +116,17 @@ export default function AthleteRegistrationView() {
   const [selectedDuration, setSelectedDuration] = useState<number>(1);
 
   // Section 5: Payment Status & Method
-  const [paymentStatus, setPaymentStatus] = useState<'Received' | 'Pending'>('Received');
-  const [paymentMethod, setPaymentMethod] = useState<'Card' | 'Cash' | 'Transfer'>('Card');
+  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('PAID');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('CARD');
+
+  // Success Modal State
+  const [registeredMemberSuccess, setRegisteredMemberSuccess] = useState<{
+    id: string;
+    regId: string;
+    name: string;
+    plan: string;
+    paymentStatus: PaymentStatus;
+  } | null>(null);
 
   const selectedPlan = AVAILABLE_PLANS.find((p) => p.id === selectedPlanId) || AVAILABLE_PLANS[0];
 
@@ -127,10 +139,9 @@ export default function AthleteRegistrationView() {
     return d.toISOString().split('T')[0];
   };
 
-  const calculatedFee = (
-    (selectedPlan.basePrice / selectedPlan.baseDurationMonths) *
-    selectedDuration
-  ).toFixed(2);
+  const calculatedFee = Number(
+    ((selectedPlan.basePrice / selectedPlan.baseDurationMonths) * selectedDuration).toFixed(2)
+  );
 
   // Start Camera Stream
   const handleStartCamera = async () => {
@@ -138,7 +149,7 @@ export default function AthleteRegistrationView() {
     try {
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { width: 640, height: 480, facingMode: 'user' },
+          video: { width: { ideal: 480 }, height: { ideal: 480 }, facingMode: 'user' },
           audio: false,
         });
         mediaStreamRef.current = stream;
@@ -152,7 +163,7 @@ export default function AthleteRegistrationView() {
       }
     } catch (err: unknown) {
       console.error('Camera access error:', err);
-      setCameraError('Camera access denied or unavailable. You may upload a photo file instead.');
+      setCameraError('Camera access unavailable. You can upload a photo image instead.');
     }
   };
 
@@ -165,19 +176,27 @@ export default function AthleteRegistrationView() {
     setIsCameraActive(false);
   };
 
-  // Capture Photo Snapshot
+  // Capture Photo Snapshot & Compress
   const handleCapturePhoto = () => {
     if (videoRef.current) {
       const canvas = document.createElement('canvas');
-      canvas.width = videoRef.current.videoWidth || 400;
-      canvas.height = videoRef.current.videoHeight || 300;
+      const targetSize = 280; // Compact square for lightweight DB storage
+      canvas.width = targetSize;
+      canvas.height = targetSize;
       const ctx = canvas.getContext('2d');
       if (ctx) {
-        ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+        // Center crop to square
+        const vidW = videoRef.current.videoWidth || 480;
+        const vidH = videoRef.current.videoHeight || 480;
+        const minDim = Math.min(vidW, vidH);
+        const startX = (vidW - minDim) / 2;
+        const startY = (vidH - minDim) / 2;
+
+        ctx.drawImage(videoRef.current, startX, startY, minDim, minDim, 0, 0, targetSize, targetSize);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
         setPhotoUrl(dataUrl);
         handleStopCamera();
-        dispatch(showToast({ message: 'Athlete photo captured successfully!', type: 'success' }));
+        dispatch(showToast({ message: 'Athlete photo captured & compressed!', type: 'success' }));
       }
     }
   };
@@ -188,8 +207,24 @@ export default function AthleteRegistrationView() {
     if (file) {
       const reader = new FileReader();
       reader.onload = () => {
-        setPhotoUrl(reader.result as string);
-        dispatch(showToast({ message: 'Profile photo uploaded!', type: 'success' }));
+        const img = document.createElement('img');
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const targetSize = 280;
+          canvas.width = targetSize;
+          canvas.height = targetSize;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            const minDim = Math.min(img.width, img.height);
+            const startX = (img.width - minDim) / 2;
+            const startY = (img.height - minDim) / 2;
+            ctx.drawImage(img, startX, startY, minDim, minDim, 0, 0, targetSize, targetSize);
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+            setPhotoUrl(dataUrl);
+            dispatch(showToast({ message: 'Profile photo optimized and attached!', type: 'success' }));
+          }
+        };
+        img.src = reader.result as string;
       };
       reader.readAsDataURL(file);
     }
@@ -204,7 +239,6 @@ export default function AthleteRegistrationView() {
     };
   }, []);
 
-  // When plan changes, set initial duration to match base duration
   const handleSelectPlan = (plan: PlanOption) => {
     setSelectedPlanId(plan.id);
     setSelectedDuration(plan.baseDurationMonths);
@@ -215,26 +249,67 @@ export default function AthleteRegistrationView() {
     e.preventDefault();
 
     if (!firstName.trim() || !lastName.trim()) {
-      dispatch(showToast({ message: 'Please enter both First Name and Last Name.', type: 'error' }));
+      dispatch(showToast({ message: 'Please provide athlete First and Last Name.', type: 'error' }));
       return;
     }
 
     if (!email.trim()) {
-      dispatch(showToast({ message: 'Please enter an Email Address.', type: 'error' }));
+      dispatch(showToast({ message: 'Please provide athlete Email address.', type: 'error' }));
       return;
     }
 
-    const regId = `ARC-${Math.floor(1000 + Math.random() * 9000)}`;
+    const regId = generateRegId();
+    const memberId = generateMemberId();
+    const staffId = loggedInUser?.id || 'usr-1';
+    const staffName = loggedInUser?.name || 'Staff Reception';
 
-    // Dispatch toast and notification
+    const newMemberPayload = {
+      id: memberId,
+      regId,
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      email: email.trim(),
+      phone: phone.trim() || '(555) 000-0000',
+      dob,
+      gender,
+      address: address.trim() || undefined,
+      emergencyContact: emergencyContact.trim() || undefined,
+      medicalNotes: medicalNotes.trim() || undefined,
+      photoUrl,
+      planId: selectedPlan.id,
+      planName: selectedPlan.name,
+      durationMonths: selectedDuration,
+      startDate: startDate.toISOString(),
+      expiryDate: expirationDate.toISOString(),
+      totalFee: calculatedFee,
+      paymentStatus,
+      paymentMethod,
+      registeredByStaffId: staffId,
+      registeredByStaffName: staffName,
+      registeredAt: new Date().toISOString(),
+      status: paymentStatus === 'PAID' ? ('ACTIVE' as const) : ('PENDING' as const),
+    };
+
+    // Store in Redux Gym State
+    dispatch(registerMember(newMemberPayload));
+
+    // Show Confirmation Modal
+    setRegisteredMemberSuccess({
+      id: memberId,
+      regId,
+      name: `${firstName} ${lastName}`,
+      plan: selectedPlan.name,
+      paymentStatus,
+    });
+
     dispatch(
       showToast({
-        message: `Registered ${firstName} ${lastName} (${regId}) with ${selectedPlan.name}!`,
+        message: `Registered ${firstName} ${lastName} (${regId}) - Payment: ${paymentStatus}!`,
         type: 'success',
       })
     );
 
-    // Reset fields
+    // Reset Form Fields
     setFirstName('');
     setLastName('');
     setEmail('');
@@ -248,14 +323,31 @@ export default function AthleteRegistrationView() {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* Top Title Banner matching Image 2 */}
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-          Athlete Registration &amp; Plan Selection
-        </h1>
-        <p className="text-[11px] sm:text-xs font-mono font-bold text-slate-400 tracking-wider uppercase mt-1">
-          REGISTER NEW MEMBER &bull; SELECT ADMIN MEMBERSHIP PLAN &bull; SET CUSTOM DURATION &bull; CONFIRM PAYMENT
-        </p>
+      {/* Top Title Banner */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+            Athlete Registration &amp; Plan Selection
+          </h1>
+          <p className="text-[11px] sm:text-xs font-mono font-bold text-slate-400 tracking-wider uppercase mt-1">
+            REGISTER NEW MEMBER &bull; LIVE WEBCAM SNAPSHOT &bull; MEMBERSHIP TIERS &bull; RECEPTION PAYMENT LOG
+          </p>
+        </div>
+
+        {/* Staff Tag Indicator */}
+        <div className="px-3.5 py-2 bg-[#0A1324] border border-[#142644] rounded-xl flex items-center gap-2.5 text-xs">
+          <div className="w-6 h-6 rounded-full bg-lime-400 text-black font-bold text-[10px] flex items-center justify-center">
+            {loggedInUser?.avatarInitials || 'ST'}
+          </div>
+          <div>
+            <div className="text-[10px] text-slate-400 uppercase font-mono font-semibold">
+              Registering Staff
+            </div>
+            <div className="text-xs font-bold text-white leading-none">
+              {loggedInUser?.name || 'Reception Desk'}
+            </div>
+          </div>
+        </div>
       </div>
 
       <form onSubmit={handleRegisterSubmit}>
@@ -266,9 +358,12 @@ export default function AthleteRegistrationView() {
           <div className="lg:col-span-7 space-y-6">
             {/* 1. ATHLETE PERSONAL INFORMATION */}
             <div className="bg-[#0A1324] border border-[#142644] rounded-2xl p-5 sm:p-6 space-y-5 shadow-lg">
-              <div className="flex items-center gap-2 text-lime-400 font-extrabold text-xs sm:text-sm tracking-wider uppercase">
-                <User className="w-4 h-4 text-lime-400" />
-                <span>1. Athlete Personal Information</span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-lime-400 font-extrabold text-xs sm:text-sm tracking-wider uppercase">
+                  <User className="w-4 h-4 text-lime-400" />
+                  <span>1. Athlete Personal Information</span>
+                </div>
+                <span className="text-[10px] font-mono text-slate-500 font-bold">* REQUIRED FIELDS</span>
               </div>
 
               {/* Name Fields */}
@@ -377,52 +472,69 @@ export default function AthleteRegistrationView() {
               {/* Address */}
               <div className="space-y-1.5">
                 <label className="block text-[10px] font-mono font-extrabold text-slate-400 uppercase tracking-wider">
-                  ADDRESS
+                  RESIDENTIAL ADDRESS
                 </label>
-                <input
-                  type="text"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  placeholder="Residential Address"
-                  className="w-full px-3.5 py-2.5 bg-[#070E1C] border border-[#142644] rounded-xl text-white text-xs font-medium focus:outline-none focus:border-lime-400 placeholder:text-slate-600 transition-colors"
-                />
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500">
+                    <MapPin className="w-4 h-4" />
+                  </div>
+                  <input
+                    type="text"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    placeholder="422 Iron St, Downtown"
+                    className="w-full pl-9 pr-3.5 py-2.5 bg-[#070E1C] border border-[#142644] rounded-xl text-white text-xs font-medium focus:outline-none focus:border-lime-400 placeholder:text-slate-600 transition-colors"
+                  />
+                </div>
               </div>
 
               {/* Emergency Contact & Medical Notes */}
               <div className="space-y-3">
                 <div className="space-y-1.5">
                   <label className="block text-[10px] font-mono font-extrabold text-slate-400 uppercase tracking-wider">
-                    EMERGENCY CONTACT &amp; MEDICAL NOTES
+                    EMERGENCY CONTACT (NAME &amp; PHONE)
                   </label>
                   <input
                     type="text"
                     value={emergencyContact}
                     onChange={(e) => setEmergencyContact(e.target.value)}
-                    placeholder="Emergency Contact Name & Phone"
+                    placeholder="e.g. Sarah Vance - (555) 888-1122"
                     className="w-full px-3.5 py-2.5 bg-[#070E1C] border border-[#142644] rounded-xl text-white text-xs font-medium focus:outline-none focus:border-lime-400 placeholder:text-slate-600 transition-colors"
                   />
                 </div>
 
-                <textarea
-                  rows={2}
-                  value={medicalNotes}
-                  onChange={(e) => setMedicalNotes(e.target.value)}
-                  placeholder="Injuries / Physical Conditions (e.g. Past shoulder surgery, asthma)..."
-                  className="w-full px-3.5 py-2.5 bg-[#070E1C] border border-[#142644] rounded-xl text-white text-xs font-medium focus:outline-none focus:border-lime-400 placeholder:text-slate-600 transition-colors resize-none"
-                />
+                <div className="space-y-1.5">
+                  <label className="block text-[10px] font-mono font-extrabold text-slate-400 uppercase tracking-wider">
+                    MEDICAL / PHYSICAL NOTES
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={medicalNotes}
+                    onChange={(e) => setMedicalNotes(e.target.value)}
+                    placeholder="Injuries, medical conditions, or asthma inhaler notes..."
+                    className="w-full px-3.5 py-2.5 bg-[#070E1C] border border-[#142644] rounded-xl text-white text-xs font-medium focus:outline-none focus:border-lime-400 placeholder:text-slate-600 transition-colors resize-none"
+                  />
+                </div>
               </div>
             </div>
 
             {/* SECTION 2: WEBCAM PROFILE CAPTURE */}
             <div className="bg-[#0A1324] border border-[#142644] rounded-2xl p-5 sm:p-6 space-y-4 shadow-lg">
-              <div className="flex items-center gap-2 text-lime-400 font-extrabold text-xs sm:text-sm tracking-wider uppercase">
-                <Camera className="w-4 h-4 text-lime-400" />
-                <span>Athlete Profile Photo</span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-lime-400 font-extrabold text-xs sm:text-sm tracking-wider uppercase">
+                  <Camera className="w-4 h-4 text-lime-400" />
+                  <span>Athlete Profile Photo (Locker Handout Verification)</span>
+                </div>
+                {photoUrl && (
+                  <span className="text-[10px] font-mono text-emerald-400 font-bold flex items-center gap-1">
+                    <Check className="w-3 h-3" /> PHOTO ATTACHED
+                  </span>
+                )}
               </div>
 
               <div className="bg-[#070E1C] border border-[#142644] rounded-xl p-4 flex flex-col sm:flex-row items-center gap-5">
                 {/* Photo or Live Video Display Frame */}
-                <div className="relative w-28 h-28 sm:w-32 sm:h-32 rounded-xl bg-[#0A1324] border-2 border-dashed border-[#1E3A66] overflow-hidden flex items-center justify-center shrink-0">
+                <div className="relative w-32 h-32 rounded-xl bg-[#0A1324] border-2 border-dashed border-[#1E3A66] overflow-hidden flex items-center justify-center shrink-0">
                   {photoUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -436,7 +548,7 @@ export default function AthleteRegistrationView() {
                       autoPlay
                       playsInline
                       muted
-                      className="w-full h-full object-cover mirror"
+                      className="w-full h-full object-cover"
                     />
                   ) : (
                     <div className="flex flex-col items-center justify-center text-slate-500 p-2 text-center">
@@ -449,7 +561,7 @@ export default function AthleteRegistrationView() {
                     <button
                       type="button"
                       onClick={() => setPhotoUrl(null)}
-                      className="absolute top-1 right-1 p-1 bg-red-600/80 hover:bg-red-500 text-white rounded-full text-xs shadow-md transition-colors"
+                      className="absolute top-1 right-1 p-1 bg-red-600/80 hover:bg-red-500 text-white rounded-full text-xs shadow-md transition-colors cursor-pointer"
                       title="Remove Photo"
                     >
                       <X className="w-3 h-3" />
@@ -460,9 +572,9 @@ export default function AthleteRegistrationView() {
                 {/* Webcam Controls & Actions */}
                 <div className="flex-1 space-y-2.5 text-center sm:text-left">
                   <div>
-                    <h4 className="text-xs font-bold text-white">Webcam Profile Capture</h4>
+                    <h4 className="text-xs font-bold text-white">Live Camera Capture</h4>
                     <p className="text-[11px] text-slate-400 mt-0.5 leading-relaxed">
-                      Take a live webcam shot for front-desk athlete visual verification.
+                      Snap a photo to verify member identity at the Check-in Desk before handing out locker keys. Stored in compact optimized size.
                     </p>
                   </div>
 
@@ -533,14 +645,14 @@ export default function AthleteRegistrationView() {
               <div>
                 <div className="flex items-center gap-2 text-lime-400 font-extrabold text-xs sm:text-sm tracking-wider uppercase">
                   <Zap className="w-4 h-4 text-lime-400" />
-                  <span>2. Select Available Membership Plan</span>
+                  <span>2. Select Membership Plan</span>
                 </div>
                 <p className="text-[11px] text-slate-400 mt-1">
-                  Choose from admin-configured membership categories and custom packages.
+                  Choose from available membership tiers configured in the Admin Panel.
                 </p>
               </div>
 
-              <div className="space-y-2.5 max-h-[340px] overflow-y-auto pr-1">
+              <div className="space-y-2.5 max-h-[320px] overflow-y-auto pr-1">
                 {AVAILABLE_PLANS.map((plan) => {
                   const isSelected = selectedPlanId === plan.id;
                   return (
@@ -555,7 +667,15 @@ export default function AthleteRegistrationView() {
                     >
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                          <span className="text-[9px] font-bold px-2 py-0.5 rounded-md bg-[#0A1324] border border-[#1A335C] text-emerald-400 uppercase">
+                          <span
+                            className={`text-[9px] font-bold px-2 py-0.5 rounded-md uppercase border ${
+                              plan.category === 'VIP Elite'
+                                ? 'bg-amber-400/10 border-amber-400/30 text-amber-400'
+                                : plan.category === 'Youth'
+                                ? 'bg-cyan-400/10 border-cyan-400/30 text-cyan-400'
+                                : 'bg-[#0A1324] border-[#1A335C] text-emerald-400'
+                            }`}
+                          >
                             {plan.category}
                           </span>
                           <h4 className="text-xs font-extrabold text-white">{plan.name}</h4>
@@ -650,16 +770,16 @@ export default function AthleteRegistrationView() {
                 <div className="flex items-center gap-2">
                   <CreditCard className="w-4 h-4 text-lime-400" />
                   <span className="text-xs font-extrabold text-white tracking-wide">
-                    Payment Status
+                    4. Reception Payment Verification
                   </span>
                 </div>
 
                 <div className="flex items-center gap-1 bg-[#070E1C] p-1 rounded-xl border border-[#142644]">
                   <button
                     type="button"
-                    onClick={() => setPaymentStatus('Received')}
+                    onClick={() => setPaymentStatus('PAID')}
                     className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                      paymentStatus === 'Received'
+                      paymentStatus === 'PAID'
                         ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-xs'
                         : 'text-slate-400 hover:text-white'
                     }`}
@@ -668,9 +788,9 @@ export default function AthleteRegistrationView() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setPaymentStatus('Pending')}
+                    onClick={() => setPaymentStatus('PENDING')}
                     className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                      paymentStatus === 'Pending'
+                      paymentStatus === 'PENDING'
                         ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
                         : 'text-slate-400 hover:text-white'
                     }`}
@@ -680,29 +800,44 @@ export default function AthleteRegistrationView() {
                 </div>
               </div>
 
+              {/* Notice for Pending payments */}
+              {paymentStatus === 'PENDING' && (
+                <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-300 text-xs flex items-start gap-2">
+                  <Clock className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
+                  <span>
+                    <strong>3-Day Rule Active:</strong> Member will have a 3-day grace period to complete payment before gym entry is denied at Check-in Desk.
+                  </span>
+                </div>
+              )}
+
               {/* Payment Method Selector */}
               <div className="space-y-1.5">
                 <label className="block text-[10px] font-mono font-extrabold text-slate-400 uppercase tracking-wider">
-                  PAYMENT METHOD
+                  OFFLINE PAYMENT METHOD CONFIRMED BY RECEPTION
                 </label>
                 <div className="grid grid-cols-3 gap-2">
-                  {(['Card', 'Cash', 'Transfer'] as const).map((method) => {
-                    const isSelected = paymentMethod === method;
+                  {(
+                    [
+                      { id: 'CARD', label: 'Card (POS)', icon: CreditCard },
+                      { id: 'CASH', label: 'Cash Drawer', icon: Banknote },
+                      { id: 'BANK_TRANSFER', label: 'Bank / QR', icon: ArrowRightLeft },
+                    ] as const
+                  ).map((method) => {
+                    const isSelected = paymentMethod === method.id;
+                    const Icon = method.icon;
                     return (
                       <button
-                        key={method}
+                        key={method.id}
                         type="button"
-                        onClick={() => setPaymentMethod(method)}
+                        onClick={() => setPaymentMethod(method.id)}
                         className={`py-2 text-xs font-bold rounded-xl border transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
                           isSelected
                             ? 'bg-[#0E1E38] border-lime-400 text-lime-400 shadow-xs'
                             : 'bg-[#070E1C] border-[#142644] text-slate-400 hover:text-white'
                         }`}
                       >
-                        {method === 'Card' && <CreditCard className="w-3.5 h-3.5" />}
-                        {method === 'Cash' && <Banknote className="w-3.5 h-3.5" />}
-                        {method === 'Transfer' && <ArrowRightLeft className="w-3.5 h-3.5" />}
-                        <span>{method}</span>
+                        <Icon className="w-3.5 h-3.5" />
+                        <span>{method.label}</span>
                       </button>
                     );
                   })}
@@ -721,6 +856,74 @@ export default function AthleteRegistrationView() {
           </div>
         </div>
       </form>
+
+      {/* Success Registration Dialog */}
+      {registeredMemberSuccess && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#0A1324] border border-[#142644] rounded-2xl max-w-md w-full p-6 space-y-5 shadow-2xl animate-in zoom-in-95 duration-150">
+            <div className="w-12 h-12 rounded-2xl bg-lime-400 text-black flex items-center justify-center font-black mx-auto shadow-[0_0_20px_rgba(163,230,53,0.4)]">
+              <Check className="w-7 h-7 stroke-[3]" />
+            </div>
+
+            <div className="text-center space-y-1">
+              <h3 className="text-lg font-black text-white">Registration Successful!</h3>
+              <p className="text-xs text-slate-400">
+                Athlete registered with tagged staff credentials &amp; synchronized into the database.
+              </p>
+            </div>
+
+            <div className="p-4 bg-[#070E1C] border border-[#142644] rounded-xl space-y-2 text-xs">
+              <div className="flex justify-between">
+                <span className="text-slate-400">Athlete Name:</span>
+                <span className="font-bold text-white">{registeredMemberSuccess.name}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400">Member ID:</span>
+                <span className="font-mono font-bold text-lime-400">
+                  {registeredMemberSuccess.regId}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400">Plan:</span>
+                <span className="font-semibold text-slate-200">{registeredMemberSuccess.plan}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400">Payment Status:</span>
+                <span
+                  className={`font-bold ${
+                    registeredMemberSuccess.paymentStatus === 'PAID'
+                      ? 'text-emerald-400'
+                      : 'text-amber-400'
+                  }`}
+                >
+                  {registeredMemberSuccess.paymentStatus}
+                </span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setRegisteredMemberSuccess(null)}
+                className="py-2.5 px-4 bg-[#0E1E38] hover:bg-[#152B4E] text-slate-300 hover:text-white font-bold text-xs rounded-xl transition-all cursor-pointer"
+              >
+                Register Another
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setRegisteredMemberSuccess(null);
+                  dispatch(setActiveTab('check-in-desk'));
+                }}
+                className="py-2.5 px-4 bg-lime-400 hover:bg-lime-300 text-black font-extrabold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-[0_0_12px_rgba(163,230,53,0.3)] transition-all cursor-pointer"
+              >
+                <UserCheck className="w-4 h-4" />
+                <span>Go to Check-In</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

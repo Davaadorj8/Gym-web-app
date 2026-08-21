@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useAppDispatch } from '@/store/hooks';
 import { setActiveTab } from '@/features/ui/uiSlice';
 import { DashboardStats } from '@/types';
-import { Users, Dumbbell, TrendingUp, DollarSign, ArrowUpRight, CheckCircle2, ChevronRight, UserPlus } from 'lucide-react';
+import { Users, Dumbbell, TrendingUp, DollarSign, ArrowUpRight } from 'lucide-react';
 
 export default function StatsOverview() {
   const dispatch = useAppDispatch();
@@ -94,32 +94,6 @@ export default function StatsOverview() {
             </div>
           );
         })}
-      </div>
-
-      {/* Architecture Readiness & Quick Status Banner */}
-      <div className="p-6 rounded-2xl border border-[#142644] bg-linear-to-r from-[#0A1324] to-[#070E1C] text-white flex flex-col md:flex-row items-start md:items-center justify-between gap-6 shadow-lg">
-        <div className="space-y-1">
-          <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-lime-400/10 text-lime-400 text-xs font-bold tracking-wide border border-lime-400/30">
-            <CheckCircle2 className="w-3.5 h-3.5" />
-            Ironpulse Engine Online
-          </div>
-          <h2 className="text-lg font-extrabold text-white tracking-tight">
-            Athlete Registration &amp; Front-Desk Terminal Active
-          </h2>
-          <p className="text-xs text-slate-400 max-w-2xl leading-relaxed">
-            Configure member plans, capture webcam profile photos, assign RFID/lockers, and track automated subscription expirations.
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => dispatch(setActiveTab('registration'))}
-            className="shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-lime-400 text-black text-xs font-extrabold hover:bg-lime-300 transition-all shadow-[0_0_12px_rgba(163,230,53,0.3)] cursor-pointer"
-          >
-            <UserPlus className="w-4 h-4" />
-            <span>Register Athlete</span>
-          </button>
-        </div>
       </div>
     </div>
   );

@@ -4,7 +4,7 @@ import React from 'react';
 import { useAppSelector } from '@/store/hooks';
 import Sidebar from '@/components/layout/sidebar';
 import Header from '@/components/layout/header';
-import StatsOverview from '@/components/dashboard/stats-overview';
+import DashboardView from '@/components/dashboard/dashboard-view';
 import AthleteRegistrationView from '@/components/registration/athlete-registration-view';
 import CheckInDeskView from '@/components/desk/check-in-desk-view';
 import AnalyticsView from '@/components/dashboard/analytics-view';
@@ -29,15 +29,8 @@ export default function HomePage() {
 
         <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6">
           {activeTab === 'dashboard' && (
-            <div className="space-y-8 animate-in fade-in duration-200">
-              <StatsOverview />
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-base font-bold text-white">Active Member Roster</h2>
-                  <span className="text-xs text-slate-400 font-medium font-mono">Live Roster</span>
-                </div>
-                <ClientTable />
-              </div>
+            <div className="space-y-6 animate-in fade-in duration-200">
+              <DashboardView />
             </div>
           )}
 
