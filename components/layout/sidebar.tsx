@@ -1,60 +1,62 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { setActiveTab, NavigationTab, showToast } from '@/features/ui/uiSlice';
 import { setRole } from '@/features/auth/authSlice';
+import { showToast } from '@/features/ui/uiSlice';
 import {
+  UserCheck,
+  Users,
+  KeyRound,
+  Dumbbell,
+  Package,
+  BarChart3,
+  ShieldCheck,
   LayoutDashboard,
   UserPlus,
-  UserCheck,
-  BarChart3,
-  Package,
-  ShieldCheck,
   Zap,
   ChevronRight,
-  Shield,
   UserCog,
 } from 'lucide-react';
 
-export default function Sidebar() {
+interface NavItem {
+  id: string;
+  label: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  badge?: string;
+  adminOnly?: boolean;
+}
+
+const NAV_ITEMS: NavItem[] = [
+  { id: 'desk', label: 'Front Desk', href: '/desk', icon: UserCheck },
+  { id: 'dashboard', label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { id: 'clients', label: 'Members Directory', href: '/clients', icon: Users },
+  { id: 'lockers', label: 'Locker Hub', href: '/lockers', icon: KeyRound },
+  { id: 'workouts', label: 'Workouts', href: '/workouts', icon: Dumbbell },
+  { id: 'registration', label: 'Registration', href: '/registration', icon: UserPlus, badge: 'New' },
+  { id: 'inventory', label: 'Inventory & POS', href: '/inventory', icon: Package },
+  { id: 'analytics', label: 'Analytics', href: '/analytics', icon: BarChart3, adminOnly: true },
+  { id: 'admin', label: 'Admin & Staff', href: '/admin', icon: ShieldCheck, adminOnly: true },
+];
+
+export const Sidebar: React.FC = () => {
+  const pathname = usePathname();
   const dispatch = useAppDispatch();
-  const activeTab = useAppSelector((state) => state.ui.activeTab);
   const isSidebarOpen = useAppSelector((state) => state.ui.isSidebarOpen);
   const user = useAppSelector((state) => state.auth.user);
   const role = user?.role || 'ADMIN';
   const isAdmin = role === 'ADMIN' || role === 'SUPER_ADMIN' || role === 'OWNER';
 
-  const allNavItems: {
-    id: NavigationTab;
-    label: string;
-    icon: React.ComponentType<{ className?: string }>;
-    badge?: string;
-    adminOnly?: boolean;
-  }[] = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'registration', label: 'Registration', icon: UserPlus, badge: 'New' },
-    { id: 'check-in-desk', label: 'Check-in Desk', icon: UserCheck },
-    { id: 'analytics', label: 'Analytics', icon: BarChart3, adminOnly: true },
-    { id: 'inventory', label: 'Inventory', icon: Package },
-    { id: 'admin-panel', label: 'Admin Panel', icon: ShieldCheck, adminOnly: true },
-  ];
-
-  const visibleNavItems = allNavItems.filter((item) => !item.adminOnly || isAdmin);
-
   if (!isSidebarOpen) return null;
 
-  const handleCheckInQuick = () => {
-    dispatch(setActiveTab('check-in-desk'));
-    dispatch(showToast({ message: 'Opened Check-in Desk terminal', type: 'info' }));
-  };
+  const visibleNavItems = NAV_ITEMS.filter((item) => !item.adminOnly || isAdmin);
 
   const toggleRole = () => {
     const nextRole = isAdmin ? 'STAFF' : 'ADMIN';
     dispatch(setRole(nextRole));
-    if (nextRole === 'STAFF' && (activeTab === 'admin-panel' || activeTab === 'analytics')) {
-      dispatch(setActiveTab('dashboard'));
-    }
     dispatch(
       showToast({
         message: `Active role switched to: ${nextRole}`,
@@ -68,9 +70,9 @@ export default function Sidebar() {
       id="arche-sidebar"
       className="w-64 bg-[#050A14] border-r border-[#142644] flex flex-col justify-between shrink-0 select-none min-h-screen z-30 transition-all"
     >
-      <div>
+      <div className="flex flex-col flex-1 overflow-y-auto">
         {/* Brand Header */}
-        <div className="p-5 flex items-center gap-3 border-b border-[#142644]/80">
+        <Link href="/dashboard" className="p-5 flex items-center gap-3 border-b border-[#142644]/80 hover:bg-slate-900/40 transition">
           <div className="w-10 h-10 rounded-xl bg-lime-400 text-black flex items-center justify-center font-black shadow-[0_0_15px_rgba(163,230,53,0.35)] shrink-0">
             <Zap className="w-6 h-6 fill-black stroke-black" />
           </div>
@@ -82,22 +84,21 @@ export default function Sidebar() {
               IRONPULSE MANAGEMENT
             </div>
           </div>
-        </div>
+        </Link>
 
         {/* Global CTA Check In Member */}
         <div className="px-4 pt-4 pb-2">
-          <button
-            type="button"
-            onClick={handleCheckInQuick}
+          <Link
+            href="/desk"
             className="w-full py-3 px-4 bg-lime-400 hover:bg-lime-300 active:scale-[0.98] text-black font-extrabold text-xs tracking-wider uppercase rounded-xl flex items-center justify-center gap-2 shadow-[0_0_16px_rgba(163,230,53,0.35)] transition-all cursor-pointer"
           >
             <Zap className="w-4 h-4 fill-black stroke-black" />
             <span>Check In Member</span>
-          </button>
+          </Link>
         </div>
 
         {/* Navigation Section */}
-        <div className="px-3 py-3">
+        <div className="px-3 py-3 flex-1">
           <div className="flex items-center justify-between px-3 mb-2">
             <span className="text-[10px] font-extrabold tracking-widest text-slate-500 uppercase font-mono">
               Navigation Menu
@@ -115,12 +116,15 @@ export default function Sidebar() {
           <nav className="space-y-1">
             {visibleNavItems.map((item) => {
               const Icon = item.icon;
-              const isActive = activeTab === item.id;
+              const isActive =
+                pathname === item.href ||
+                (item.href !== '/' && item.href !== '/dashboard' && pathname.startsWith(item.href));
+
               return (
-                <button
+                <Link
                   key={item.id}
                   id={`nav-item-${item.id}`}
-                  onClick={() => dispatch(setActiveTab(item.id))}
+                  href={item.href}
                   className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                     isActive
                       ? 'bg-[#0E1E38] text-lime-400 border border-lime-400/40 shadow-[0_0_12px_rgba(163,230,53,0.15)]'
@@ -135,8 +139,15 @@ export default function Sidebar() {
                     />
                     <span className="tracking-wide">{item.label}</span>
                   </div>
-                  {isActive && <ChevronRight className="w-3.5 h-3.5 text-lime-400" />}
-                </button>
+                  <div className="flex items-center gap-1.5">
+                    {item.badge && (
+                      <span className="rounded-full bg-cyan-500/20 px-2 py-0.5 text-[9px] font-bold text-cyan-300 font-mono">
+                        {item.badge}
+                      </span>
+                    )}
+                    {isActive && <ChevronRight className="w-3.5 h-3.5 text-lime-400" />}
+                  </div>
+                </Link>
               );
             })}
           </nav>
@@ -177,7 +188,7 @@ export default function Sidebar() {
           <button
             type="button"
             onClick={toggleRole}
-            className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-[#142644] transition-colors flex items-center gap-1"
+            className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-[#142644] transition-colors flex items-center gap-1 cursor-pointer"
             title={`Switch to ${isAdmin ? 'STAFF' : 'ADMIN'} role`}
           >
             <UserCog className="w-4 h-4 text-slate-300 hover:text-lime-400 transition-colors" />
@@ -186,5 +197,6 @@ export default function Sidebar() {
       </div>
     </aside>
   );
-}
+};
 
+export default Sidebar;

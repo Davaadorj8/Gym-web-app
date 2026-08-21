@@ -78,7 +78,7 @@ export class WorkoutService {
           }
         });
 
-        return plans.map((p) => ({
+        return (plans as any[]).map((p: any) => ({
           ...p,
           createdAt: p.createdAt.toISOString(),
           updatedAt: p.updatedAt.toISOString(),

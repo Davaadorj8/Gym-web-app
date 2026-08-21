@@ -24,6 +24,18 @@ export interface Client {
   fitnessLevel: WorkoutLevel;
   joinedDate: string;
   notes?: string | null;
+  gender?: 'MALE' | 'FEMALE' | 'OTHER';
+  dateOfBirth?: string;
+  membershipType?: string;
+  startDate?: string;
+  rfidTag?: string;
+  emergencyContactName?: string;
+  emergencyContactPhone?: string;
+  emergencyRelation?: string;
+  medicalNotes?: string;
+  fitnessGoals?: string;
+  waiverSigned?: boolean;
+  assignedTrainerId?: string;
   createdAt: string;
   updatedAt: string;
   _count?: {

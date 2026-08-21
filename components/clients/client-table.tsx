@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import {
   fetchClients,
@@ -193,9 +194,12 @@ export default function ClientTable() {
                 >
                   {/* Name & Contact */}
                   <td className="py-4 px-5">
-                    <div className="font-bold text-white text-sm">
-                      {client.firstName} {client.lastName}
-                    </div>
+                    <Link
+                      href={`/clients/${client.id}`}
+                      className="font-bold text-white text-sm hover:text-cyan-400 transition-colors flex items-center gap-1.5 group"
+                    >
+                      <span>{client.firstName} {client.lastName}</span>
+                    </Link>
                     <div className="flex items-center gap-3 text-slate-400 mt-1">
                       <span className="flex items-center gap-1">
                         <Mail className="w-3 h-3 text-slate-500" />

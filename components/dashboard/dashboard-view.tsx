@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useMemo } from 'react';
+import Link from 'next/link';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { setActiveTab } from '@/features/ui/uiSlice';
 import {
   Users,
   DollarSign,
@@ -135,12 +135,15 @@ export default function DashboardView() {
       {/* 1. TOP METRIC CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: Available / Occupied Lockers */}
-        <div className="bg-[#0A1324] border border-[#142644] rounded-2xl p-5 shadow-lg relative overflow-hidden flex flex-col justify-between">
+        <Link
+          href="/lockers"
+          className="bg-[#0A1324] border border-[#142644] hover:border-cyan-500/50 rounded-2xl p-5 shadow-lg relative overflow-hidden flex flex-col justify-between cursor-pointer transition-all hover:scale-[1.02] group"
+        >
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-semibold">
+            <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-semibold group-hover:text-cyan-400 transition">
               LOCKERS STATUS
             </span>
-            <div className="w-8 h-8 rounded-xl bg-lime-400/10 border border-lime-400/30 flex items-center justify-center text-lime-400">
+            <div className="w-8 h-8 rounded-xl bg-lime-400/10 border border-lime-400/30 flex items-center justify-center text-lime-400 group-hover:bg-cyan-500/20 group-hover:text-cyan-400 group-hover:border-cyan-500/40 transition">
               <KeyRound className="w-4 h-4" />
             </div>
           </div>
@@ -164,15 +167,18 @@ export default function DashboardView() {
               )}
             </div>
           </div>
-        </div>
+        </Link>
 
         {/* Card 2: Current in Gym */}
-        <div className="bg-[#0A1324] border border-[#142644] rounded-2xl p-5 shadow-lg relative overflow-hidden flex flex-col justify-between">
+        <Link
+          href="/desk"
+          className="bg-[#0A1324] border border-[#142644] hover:border-cyan-500/50 rounded-2xl p-5 shadow-lg relative overflow-hidden flex flex-col justify-between cursor-pointer transition-all hover:scale-[1.02] group"
+        >
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-semibold">
+            <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-semibold group-hover:text-cyan-400 transition">
               CURRENT IN GYM
             </span>
-            <div className="w-8 h-8 rounded-xl bg-cyan-400/10 border border-cyan-400/30 flex items-center justify-center text-cyan-400">
+            <div className="w-8 h-8 rounded-xl bg-cyan-400/10 border border-cyan-400/30 flex items-center justify-center text-cyan-400 group-hover:bg-cyan-500/20 group-hover:text-cyan-400 transition">
               <Users className="w-4 h-4" />
             </div>
           </div>
@@ -190,15 +196,18 @@ export default function DashboardView() {
               <span>Turnstile Gate Online</span>
             </div>
           </div>
-        </div>
+        </Link>
 
         {/* Card 3: Expiring / Unpaid Alert */}
-        <div className="bg-[#0A1324] border border-[#142644] rounded-2xl p-5 shadow-lg relative overflow-hidden flex flex-col justify-between">
+        <Link
+          href="/clients"
+          className="bg-[#0A1324] border border-[#142644] hover:border-rose-500/50 rounded-2xl p-5 shadow-lg relative overflow-hidden flex flex-col justify-between cursor-pointer transition-all hover:scale-[1.02] group"
+        >
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-semibold">
+            <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-semibold group-hover:text-rose-400 transition">
               EXPIRING / UNPAID
             </span>
-            <div className="w-8 h-8 rounded-xl bg-rose-400/10 border border-rose-400/30 flex items-center justify-center text-rose-400">
+            <div className="w-8 h-8 rounded-xl bg-rose-400/10 border border-rose-400/30 flex items-center justify-center text-rose-400 group-hover:bg-rose-500/20 transition">
               <AlertTriangle className="w-4 h-4" />
             </div>
           </div>
@@ -221,10 +230,13 @@ export default function DashboardView() {
               </span>
             </div>
           </div>
-        </div>
+        </Link>
 
         {/* Card 4: Total Subscriptions & Revenue (Admin) vs Roster Summary (Staff) */}
-        <div className="bg-[#0A1324] border border-[#142644] rounded-2xl p-5 shadow-lg relative overflow-hidden flex flex-col justify-between">
+        <Link
+          href={isAdmin ? "/analytics" : "/clients"}
+          className="bg-[#0A1324] border border-[#142644] hover:border-cyan-500/50 rounded-2xl p-5 shadow-lg relative overflow-hidden flex flex-col justify-between cursor-pointer transition-all hover:scale-[1.02] group"
+        >
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-semibold">
               {isAdmin ? 'TOTAL REVENUE LOGGED' : 'ACTIVE ATHLETE ROSTER'}
@@ -261,7 +273,7 @@ export default function DashboardView() {
               </span>
             </div>
           </div>
-        </div>
+        </Link>
       </div>
 
       {/* 2. MIDDLE CHARTS SECTION */}

@@ -112,7 +112,7 @@ export class ClientService {
           }
         });
 
-        return clients.map((c) => ({
+        return (clients as any[]).map((c: any) => ({
           ...c,
           createdAt: c.createdAt.toISOString(),
           updatedAt: c.updatedAt.toISOString(),
@@ -190,17 +190,28 @@ export class ClientService {
             trainerId,
             firstName: data.firstName,
             lastName: data.lastName,
-            email: data.email,
+            email: data.email || `${data.firstName.toLowerCase()}.${data.lastName.toLowerCase()}@example.com`,
             phone: data.phone || null,
-            status: data.status,
-            fitnessGoal: data.fitnessGoal || null,
-            fitnessLevel: data.fitnessLevel,
-            notes: data.notes || null,
+            status: 'ACTIVE',
+            fitnessGoal: data.fitnessGoals || (data as any).fitnessGoal || null,
+            fitnessLevel: (data as any).fitnessLevel || 'BEGINNER',
+            notes: data.medicalNotes || (data as any).notes || null,
           }
         });
 
         return {
           ...created,
+          gender: data.gender,
+          dateOfBirth: data.dateOfBirth,
+          membershipType: data.membershipType,
+          startDate: data.startDate,
+          rfidTag: data.rfidTag,
+          emergencyContactName: data.emergencyContactName,
+          emergencyContactPhone: data.emergencyContactPhone,
+          emergencyRelation: data.emergencyRelation,
+          medicalNotes: data.medicalNotes,
+          fitnessGoals: data.fitnessGoals,
+          waiverSigned: data.waiverSigned,
           createdAt: created.createdAt.toISOString(),
           updatedAt: created.updatedAt.toISOString(),
           joinedDate: created.joinedDate.toISOString(),
@@ -216,13 +227,24 @@ export class ClientService {
       trainerId,
       firstName: data.firstName,
       lastName: data.lastName,
-      email: data.email,
+      email: data.email || `${data.firstName.toLowerCase()}.${data.lastName.toLowerCase()}@example.com`,
       phone: data.phone || null,
-      status: data.status,
-      fitnessGoal: data.fitnessGoal || null,
-      fitnessLevel: data.fitnessLevel,
-      joinedDate: new Date().toISOString(),
-      notes: data.notes || null,
+      status: 'ACTIVE',
+      fitnessGoal: data.fitnessGoals || (data as any).fitnessGoal || null,
+      fitnessLevel: (data as any).fitnessLevel || 'BEGINNER',
+      joinedDate: data.startDate || new Date().toISOString(),
+      notes: data.medicalNotes || (data as any).notes || null,
+      gender: data.gender,
+      dateOfBirth: data.dateOfBirth,
+      membershipType: data.membershipType,
+      startDate: data.startDate,
+      rfidTag: data.rfidTag,
+      emergencyContactName: data.emergencyContactName,
+      emergencyContactPhone: data.emergencyContactPhone,
+      emergencyRelation: data.emergencyRelation,
+      medicalNotes: data.medicalNotes,
+      fitnessGoals: data.fitnessGoals,
+      waiverSigned: data.waiverSigned,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       _count: { workoutSessions: 0 }
@@ -234,6 +256,7 @@ export class ClientService {
   static async updateClient(id: string, data: Partial<ClientInput>): Promise<Client | null> {
     if (isDatabaseConfigured()) {
       try {
+        const anyData = data as any;
         const updated = await prisma.client.update({
           where: { id },
           data: {
@@ -241,10 +264,12 @@ export class ClientService {
             ...(data.lastName && { lastName: data.lastName }),
             ...(data.email && { email: data.email }),
             ...(data.phone !== undefined && { phone: data.phone }),
-            ...(data.status && { status: data.status }),
-            ...(data.fitnessGoal !== undefined && { fitnessGoal: data.fitnessGoal }),
-            ...(data.fitnessLevel && { fitnessLevel: data.fitnessLevel }),
-            ...(data.notes !== undefined && { notes: data.notes }),
+            ...(anyData.status && { status: anyData.status }),
+            ...(data.fitnessGoals !== undefined && { fitnessGoal: data.fitnessGoals }),
+            ...(anyData.fitnessGoal !== undefined && { fitnessGoal: anyData.fitnessGoal }),
+            ...(anyData.fitnessLevel && { fitnessLevel: anyData.fitnessLevel }),
+            ...(data.medicalNotes !== undefined && { notes: data.medicalNotes }),
+            ...(anyData.notes !== undefined && { notes: anyData.notes }),
           }
         });
         return {

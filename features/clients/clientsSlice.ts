@@ -58,6 +58,8 @@ export const createClient = createAsyncThunk(
   }
 );
 
+export const addClient = createClient;
+
 export const updateClient = createAsyncThunk(
   'clients/updateClient',
   async ({ id, data }: { id: string; data: Partial<ClientInput> }, { rejectWithValue }) => {

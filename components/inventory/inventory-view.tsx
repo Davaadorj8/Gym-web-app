@@ -16,8 +16,7 @@ import {
   Sparkles,
   Bell,
 } from 'lucide-react';
-import LockerMatrixSection from '@/components/lockers/locker-matrix-section';
-import DatabaseLockerUsageSection from '@/components/lockers/database-locker-usage-section';
+import LockerHubView from '@/components/lockers/locker-hub-view';
 import StaffNotificationsSection from '@/components/staff/staff-notifications-section';
 
 export default function InventoryView() {
@@ -54,7 +53,7 @@ export default function InventoryView() {
             }`}
           >
             <KeyRound className="w-3.5 h-3.5" />
-            <span>Lockers &amp; Key Usage</span>
+            <span>Unified Locker Hub</span>
           </button>
           <button
             type="button"
@@ -71,14 +70,10 @@ export default function InventoryView() {
         </div>
       </div>
 
-      {/* SECTION 1: LOCKERS & DATABASE USAGE */}
+      {/* SECTION 1: UNIFIED LOCKER HUB */}
       {activeSection === 'LOCKERS' && (
         <div className="space-y-6 animate-in fade-in duration-150">
-          {/* Facility Locker Management & Staff Status Controls */}
-          <LockerMatrixSection />
-
-          {/* Database Locker Usage Historical Log */}
-          <DatabaseLockerUsageSection />
+          <LockerHubView />
         </div>
       )}
 

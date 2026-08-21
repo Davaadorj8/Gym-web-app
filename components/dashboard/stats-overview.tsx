@@ -52,7 +52,7 @@ export default function StatsOverview() {
     {
       id: 'stat-revenue',
       label: 'Monthly Run Rate',
-      value: stats ? `$${stats.revenueMtd.toLocaleString()}` : '—',
+      value: stats?.revenueMtd != null ? `$${stats.revenueMtd.toLocaleString()}` : '—',
       subtext: 'Passes, memberships & pro shop',
       change: '+18.4% vs last mo',
       icon: DollarSign,

@@ -2,7 +2,8 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { showToast, setActiveTab } from '@/features/ui/uiSlice';
+import { showToast } from '@/features/ui/uiSlice';
+import { ClientRegistrationModal } from '@/components/clients/client-registration-modal';
 import {
   checkInMember,
   checkOutMember,
@@ -61,6 +62,9 @@ export default function CheckInDeskView() {
   // Payment resolution modal state
   const [paymentModalMember, setPaymentModalMember] = useState<RegisteredMember | null>(null);
   const [resolveMethod, setResolveMethod] = useState<PaymentMethod>('CARD');
+
+  // Walk-in Registration Modal state (preserving desk context)
+  const [isWalkInModalOpen, setIsWalkInModalOpen] = useState(false);
 
   const isAutoSelectLocker = facility.autoAssignLocker;
 
@@ -282,8 +286,19 @@ export default function CheckInDeskView() {
           </div>
         </div>
 
-        {/* Top Controls: Matrix Modal & Occupancy Counter */}
+        {/* Top Controls: Register Walk-in, Matrix Modal & Occupancy Counter */}
         <div className="flex flex-wrap items-center gap-3">
+          {/* Quick Register Walk-in Button (Context Preserving) */}
+          <button
+            type="button"
+            id="btn-desk-register-walkin"
+            onClick={() => setIsWalkInModalOpen(true)}
+            className="py-2 px-3.5 bg-cyan-500 hover:bg-cyan-400 active:scale-[0.98] text-black font-extrabold text-xs rounded-xl flex items-center gap-1.5 transition-all cursor-pointer shadow-[0_0_15px_rgba(6,182,212,0.35)]"
+          >
+            <UserPlus className="w-4 h-4 stroke-[2.5]" />
+            <span>+ Register Walk-in</span>
+          </button>
+
           {/* Quick Matrix Modal Button */}
           <button
             type="button"
@@ -419,8 +434,16 @@ export default function CheckInDeskView() {
                     );
                   })
                 ) : (
-                  <div className="p-4 bg-[#070E1C] rounded-xl text-center text-xs text-slate-500">
-                    No athlete found matching &ldquo;{searchQuery}&rdquo;.
+                  <div className="p-4 bg-[#070E1C] rounded-xl text-center space-y-2.5">
+                    <p className="text-xs text-slate-400">No athlete found matching &ldquo;{searchQuery}&rdquo;.</p>
+                    <button
+                      type="button"
+                      onClick={() => setIsWalkInModalOpen(true)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 rounded-lg text-xs font-bold hover:bg-cyan-500/30 transition-colors cursor-pointer"
+                    >
+                      <UserPlus className="w-3.5 h-3.5" />
+                      <span>Register as Walk-In Member</span>
+                    </button>
                   </div>
                 )}
               </div>
@@ -1049,6 +1072,24 @@ export default function CheckInDeskView() {
           </div>
         </div>
       )}
+
+      {/* ========================================================================= */}
+      {/* WALK-IN REGISTRATION MODAL (CONTEXT PRESERVING)                           */}
+      {/* ========================================================================= */}
+      <ClientRegistrationModal
+        isOpen={isWalkInModalOpen}
+        onClose={() => setIsWalkInModalOpen(false)}
+        defaultMode="quick"
+        title="Register Walk-in Athlete"
+        subtitle="Quick 30-second desk onboarding. Preserves check-in queue context."
+        onSuccess={(newClient) => {
+          // Find newly created member in gym store or select
+          const found = members.find((m) => m.firstName.toLowerCase() === newClient.firstName.toLowerCase() && m.lastName.toLowerCase() === newClient.lastName.toLowerCase());
+          if (found) {
+            handleSelectMember(found);
+          }
+        }}
+      />
     </div>
   );
 }

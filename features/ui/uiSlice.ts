@@ -4,6 +4,7 @@ export type NavigationTab =
   | 'dashboard'
   | 'registration'
   | 'check-in-desk'
+  | 'lockers'
   | 'analytics'
   | 'inventory'
   | 'admin-panel'
