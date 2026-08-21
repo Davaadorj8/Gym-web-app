@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { showToast, setActiveTab } from '@/features/ui/uiSlice';
+import { showToast } from '@/features/ui/uiSlice';
 import {
   setTotalLockers,
   setAutoAssignLocker,
@@ -11,64 +11,16 @@ import {
 } from '@/features/gym/gymSlice';
 import {
   ShieldCheck,
-  Check,
-  X,
   Lock,
   KeyRound,
   Sliders,
   DollarSign,
-  Users,
-  Settings,
-  Database,
-  RefreshCw,
-  GitBranch,
   Wrench,
   Layers,
   Sparkles,
-  Zap,
   Bell,
 } from 'lucide-react';
 import StaffNotificationsSection from '@/components/staff/staff-notifications-section';
-
-interface StaffApproval {
-  id: string;
-  type: 'Discount Override' | 'Master Key Release' | 'Refund Request';
-  member: string;
-  staffName: string;
-  details: string;
-  time: string;
-  status: 'Pending' | 'Approved' | 'Rejected';
-}
-
-const INITIAL_REQUESTS: StaffApproval[] = [
-  {
-    id: '1',
-    type: 'Discount Override',
-    member: 'Sarah Jenkins',
-    staffName: 'Staff Mike (Desk 1)',
-    details: '20% Student/Teacher discount voucher applied to 3-Month Plan',
-    time: '10 mins ago',
-    status: 'Pending',
-  },
-  {
-    id: '2',
-    type: 'Master Key Release',
-    member: 'David Miller',
-    staffName: 'Staff Alex (Floor)',
-    details: 'Locker #42 mechanical latch stuck with athlete bag inside',
-    time: '25 mins ago',
-    status: 'Pending',
-  },
-  {
-    id: '3',
-    type: 'Refund Request',
-    member: 'Robert Hall',
-    staffName: 'Staff Mike (Desk 1)',
-    details: 'Accidental duplicate charge for Pro Shop Protein Tub ($49.99)',
-    time: '1 hour ago',
-    status: 'Approved',
-  },
-];
 
 export default function AdminPanelView() {
   const dispatch = useAppDispatch();
@@ -76,29 +28,13 @@ export default function AdminPanelView() {
   const lockers = useAppSelector((state) => state.gym.lockers);
   const membershipPlans = useAppSelector((state) => state.gym.membershipPlans);
 
-  const [requests, setRequests] = useState<StaffApproval[]>(INITIAL_REQUESTS);
-  const [activeAdminSection, setActiveAdminSection] = useState<'LOCKERS' | 'STAFF_ACTION'>('LOCKERS');
+  const [activeAdminSection, setActiveAdminSection] = useState<'FACILITY' | 'PLANS' | 'STAFF_ACTION'>('FACILITY');
   const [customLockerInput, setCustomLockerInput] = useState<string>(String(facility.lockersTotal));
   const [guestPassLimit, setGuestPassLimit] = useState(2);
-  const [selectedMaintLocker, setSelectedMaintLocker] = useState<number | null>(null);
 
   const availableCount = lockers.filter((l) => l.status === 'AVAILABLE').length;
   const occupiedCount = lockers.filter((l) => l.status === 'OCCUPIED').length;
   const maintenanceCount = lockers.filter((l) => l.status === 'MAINTENANCE').length;
-
-  const handleApprove = (id: string, member: string) => {
-    setRequests((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, status: 'Approved' } : r))
-    );
-    dispatch(showToast({ message: `Approved authorization for ${member}`, type: 'success' }));
-  };
-
-  const handleReject = (id: string, member: string) => {
-    setRequests((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, status: 'Rejected' } : r))
-    );
-    dispatch(showToast({ message: `Rejected request for ${member}`, type: 'info' }));
-  };
 
   const handleApplyLockerCapacity = (newTotal: number) => {
     const validCount = Math.max(10, Math.min(250, newTotal));
@@ -154,18 +90,30 @@ export default function AdminPanelView() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
-            onClick={() => setActiveAdminSection('LOCKERS')}
+            onClick={() => setActiveAdminSection('FACILITY')}
             className={`py-2 px-3.5 rounded-xl font-extrabold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
-              activeAdminSection === 'LOCKERS'
+              activeAdminSection === 'FACILITY'
                 ? 'bg-lime-400 text-black shadow-[0_0_12px_rgba(163,230,53,0.3)]'
                 : 'bg-[#070E1C] border border-[#142644] text-slate-400 hover:text-white'
             }`}
           >
             <KeyRound className="w-4 h-4" />
             <span>Facility Controls</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveAdminSection('PLANS')}
+            className={`py-2 px-3.5 rounded-xl font-extrabold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
+              activeAdminSection === 'PLANS'
+                ? 'bg-lime-400 text-black shadow-[0_0_12px_rgba(163,230,53,0.3)]'
+                : 'bg-[#070E1C] border border-[#142644] text-slate-400 hover:text-white'
+            }`}
+          >
+            <Layers className="w-4 h-4" />
+            <span>Membership Plans</span>
           </button>
           <button
             type="button"
@@ -178,17 +126,15 @@ export default function AdminPanelView() {
           >
             <Bell className="w-4 h-4" />
             <span>Staff Action</span>
-            {requests.filter((r) => r.status === 'Pending').length > 0 && (
-              <span className="w-2 h-2 rounded-full bg-red-400 animate-pulse" />
-            )}
+            <span className="w-2 h-2 rounded-full bg-red-400 animate-pulse" />
           </button>
         </div>
       </div>
 
       {/* ========================================================================= */}
-      {/* SECTION: Facility Controls vs Staff Action Switcher                       */}
+      {/* SECTION: Facility Controls                                                */}
       {/* ========================================================================= */}
-      {activeAdminSection === 'LOCKERS' && (
+      {activeAdminSection === 'FACILITY' && (
         <div className="space-y-6 animate-in fade-in duration-150">
           {/* Locker Key Inventory & Capacity Admin Controller */}
           <div className="bg-[#0A1324] border border-[#142644] rounded-2xl p-6 space-y-6 shadow-xl">
@@ -351,139 +297,6 @@ export default function AdminPanelView() {
         </div>
       </div>
 
-      {/* Staff Override Requests Queue - Quick Portal */}
-      <div className="bg-[#0A1324] border border-[#142644] rounded-2xl p-6 space-y-4 shadow-xl">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-sm font-extrabold text-white tracking-wide flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-lime-400" />
-              <span>Staff Action Authorizations &amp; Overrides</span>
-            </h3>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Live authorization requests and terminal notifications are managed under the inventory &amp; operations hub.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => dispatch(setActiveTab('inventory'))}
-            className="px-3.5 py-1.5 bg-[#0E1E38] hover:bg-[#152B4E] border border-lime-400/40 text-lime-400 font-mono font-bold text-xs rounded-xl transition-all cursor-pointer shadow-md flex items-center gap-1.5"
-          >
-            <span>Open Staff Notification Hub</span>
-            <span className="w-2 h-2 rounded-full bg-lime-400 animate-pulse" />
-          </button>
-        </div>
-
-        <div className="space-y-3">
-          {requests.map((req) => (
-            <div
-              key={req.id}
-              className="p-4 bg-[#070E1C] border border-[#142644] rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4"
-            >
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-md bg-lime-400/10 text-lime-400 border border-lime-400/30 uppercase font-mono">
-                    {req.type}
-                  </span>
-                  <span className="text-xs font-bold text-white">Member: {req.member}</span>
-                  <span className="text-[10px] text-slate-400 font-mono">({req.time})</span>
-                </div>
-                <p className="text-xs text-slate-300">{req.details}</p>
-                <p className="text-[11px] text-slate-400">
-                  Requested by: <span className="text-slate-300 font-semibold">{req.staffName}</span>
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2 shrink-0">
-                {req.status === 'Pending' ? (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => handleReject(req.id, req.member)}
-                      className="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                      <span>Reject</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleApprove(req.id, req.member)}
-                      className="px-3.5 py-1.5 bg-lime-400 hover:bg-lime-300 text-black rounded-lg text-xs font-extrabold flex items-center gap-1 shadow-[0_0_10px_rgba(163,230,53,0.3)] transition-all cursor-pointer"
-                    >
-                      <Check className="w-3.5 h-3.5 stroke-[2.5]" />
-                      <span>Approve</span>
-                    </button>
-                  </>
-                ) : (
-                  <span
-                    className={`px-3 py-1 rounded-full text-xs font-bold ${
-                      req.status === 'Approved'
-                        ? 'bg-lime-400/20 text-lime-400 border border-lime-400/40'
-                        : 'bg-red-500/20 text-red-400 border border-red-500/40'
-                    }`}
-                  >
-                    {req.status}
-                  </span>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* SECTION: Membership Plans (Admin Configuration) */}
-      <div className="bg-[#0A1324] border border-[#142644] rounded-2xl p-6 space-y-6 shadow-xl">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#142644] pb-4">
-          <div>
-            <div className="flex items-center gap-2 text-lime-400 font-extrabold text-sm uppercase tracking-wider font-mono">
-              <Layers className="w-5 h-5" />
-              <span>Membership Plans &amp; Subscriptions Config</span>
-            </div>
-            <p className="text-xs text-slate-400 mt-1">
-              Admin-created membership tiers. Automatically populates athlete registration options and dashboard analytics breakdown.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="px-3 py-1 bg-lime-400/10 border border-lime-400/30 rounded-xl text-xs font-mono font-bold text-lime-400">
-              {membershipPlans?.length || 5} Active Plans
-            </span>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {membershipPlans?.map((plan) => (
-            <div
-              key={plan.id}
-              className="p-4 rounded-xl border border-[#142644] bg-[#070E1C] hover:border-[#1E3A66] transition-all space-y-3"
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-2">
-                  <span
-                    className="w-3 h-3 rounded-full shrink-0"
-                    style={{ backgroundColor: plan.color }}
-                  />
-                  <span className="font-extrabold text-white text-sm">{plan.name}</span>
-                </div>
-                <span className="px-2 py-0.5 rounded-md bg-[#0A1324] border border-[#142644] text-[10px] font-mono text-slate-400">
-                  {plan.category}
-                </span>
-              </div>
-
-              <div className="flex items-baseline justify-between pt-2 border-t border-[#142644]">
-                <div>
-                  <span className="text-xl font-black text-white font-mono">${plan.price}</span>
-                  <span className="text-xs text-slate-500 font-mono"> / {plan.durationMonths} Mo</span>
-                </div>
-                <span className="text-[11px] font-mono font-bold text-lime-400">Active</span>
-              </div>
-              {plan.description && (
-                <p className="text-[11px] text-slate-400 leading-snug">{plan.description}</p>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-
       {/* Club Operational Settings */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="bg-[#0A1324] border border-[#142644] rounded-2xl p-5 space-y-4">
@@ -533,6 +346,67 @@ export default function AdminPanelView() {
               <span className="text-white font-bold">USD ($)</span>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+  )}
+
+  {/* ========================================================================= */}
+  {/* SECTION: Membership Plans & Subscriptions Config                          */}
+  {/* ========================================================================= */}
+  {activeAdminSection === 'PLANS' && (
+    <div className="space-y-6 animate-in fade-in duration-150">
+      <div className="bg-[#0A1324] border border-[#142644] rounded-2xl p-6 space-y-6 shadow-xl">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#142644] pb-4">
+          <div>
+            <div className="flex items-center gap-2 text-lime-400 font-extrabold text-sm uppercase tracking-wider font-mono">
+              <Layers className="w-5 h-5" />
+              <span>Membership Plans &amp; Subscriptions Config</span>
+            </div>
+            <p className="text-xs text-slate-400 mt-1">
+              Admin-created membership tiers. Automatically populates athlete registration options and dashboard analytics breakdown.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="px-3 py-1 bg-lime-400/10 border border-lime-400/30 rounded-xl text-xs font-mono font-bold text-lime-400">
+              {membershipPlans?.length || 5} Active Plans
+            </span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {membershipPlans?.map((plan) => (
+            <div
+              key={plan.id}
+              className="p-5 rounded-xl border border-[#142644] bg-[#070E1C] hover:border-[#1E3A66] transition-all space-y-3"
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-2">
+                  <span
+                    className="w-3 h-3 rounded-full shrink-0 shadow-sm"
+                    style={{ backgroundColor: plan.color }}
+                  />
+                  <span className="font-extrabold text-white text-sm">{plan.name}</span>
+                </div>
+                <span className="px-2.5 py-0.5 rounded-md bg-[#0A1324] border border-[#142644] text-[10px] font-mono font-bold text-slate-300">
+                  {plan.category}
+                </span>
+              </div>
+
+              <div className="flex items-baseline justify-between pt-2 border-t border-[#142644]">
+                <div>
+                  <span className="text-2xl font-black text-white font-mono">${plan.price}</span>
+                  <span className="text-xs text-slate-400 font-mono"> / {plan.durationMonths} Mo</span>
+                </div>
+                <span className="text-[11px] font-mono font-bold text-lime-400 px-2 py-0.5 rounded bg-lime-400/10 border border-lime-400/30">Active</span>
+              </div>
+
+              {plan.description && (
+                <p className="text-xs text-slate-400 leading-relaxed">{plan.description}</p>
+              )}
+            </div>
+          ))}
         </div>
       </div>
     </div>
