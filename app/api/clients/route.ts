@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { ClientService } from '@/services/client.service';
-import { clientSchema } from '@/lib/validations/client';
+import { ClientService, clientSchema } from '@/modules/clients/server';
 
 export async function GET(req: NextRequest) {
   try {

@@ -2,8 +2,8 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { showToast } from '@/features/ui/uiSlice';
-import { ClientRegistrationModal } from '@/components/clients/client-registration-modal';
+import { showToast, setActiveTab } from '@/features/ui/uiSlice';
+import { ClientRegistrationModal } from '@/modules/clients';
 import {
   checkInMember,
   checkOutMember,

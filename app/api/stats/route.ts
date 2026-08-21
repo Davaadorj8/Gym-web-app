@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { StatsService } from '@/services/stats.service';
+import { StatsService } from '@/modules/analytics/server';
 import { auth } from '@/lib/auth';
 
 export async function GET() {

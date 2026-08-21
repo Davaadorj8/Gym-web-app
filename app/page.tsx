@@ -4,16 +4,14 @@ import React from 'react';
 import { useAppSelector } from '@/store/hooks';
 import Sidebar from '@/components/layout/sidebar';
 import Header from '@/components/layout/header';
-import DashboardView from '@/components/dashboard/dashboard-view';
-import AthleteRegistrationView from '@/components/registration/athlete-registration-view';
-import CheckInDeskView from '@/components/desk/check-in-desk-view';
-import AnalyticsHub from '@/components/dashboard/analytics-hub';
-import InventoryView from '@/components/inventory/inventory-view';
-import LockerHubView from '@/components/lockers/locker-hub-view';
-import AdminPanelView from '@/components/admin/admin-panel-view';
-import ClientTable from '@/components/clients/client-table';
-import AddClientModal from '@/components/clients/add-client-modal';
-import WorkoutBuilder from '@/components/workouts/workout-builder';
+import { DashboardView, AnalyticsHub } from '@/modules/analytics';
+import { AthleteRegistrationView } from '@/modules/registration';
+import { CheckInDeskView } from '@/modules/desk';
+import { InventoryView } from '@/modules/inventory';
+import { LockerHubView } from '@/modules/lockers';
+import { AdminPanelView } from '@/modules/admin';
+import { ClientTable, AddClientModal } from '@/modules/clients';
+import { WorkoutBuilder } from '@/modules/workouts';
 import TechStackStatus from '@/components/system/tech-stack-status';
 
 export default function HomePage() {

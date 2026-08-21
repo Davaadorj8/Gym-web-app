@@ -2,8 +2,8 @@ import { configureStore } from '@reduxjs/toolkit';
 import authReducer from '@/features/auth/authSlice';
 import gymReducer from '@/features/gym/gymSlice';
 import uiReducer from '@/features/ui/uiSlice';
-import clientsReducer from '@/features/clients/clientsSlice';
-import workoutsReducer from '@/features/workouts/workoutsSlice';
+import clientsReducer from '@/modules/clients/slice/clientsSlice';
+import workoutsReducer from '@/modules/workouts/slice/workoutsSlice';
 
 export const makeStore = () => {
   return configureStore({

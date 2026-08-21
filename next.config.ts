@@ -20,10 +20,12 @@ const nextConfig: NextConfig = {
     ],
   },
   output: 'standalone',
+  serverExternalPackages: ['pg', 'pg-native', '@prisma/client', '@prisma/adapter-pg'],
   transpilePackages: ['motion'],
   webpack: (config, {dev}) => {
+    config.externals = [...(config.externals || []), 'pg-native'];
     // HMR is disabled in AI Studio via DISABLE_HMR env var.
-    // Do not modifyâfile watching is disabled to prevent flickering during agent edits.
+    // Do not modify—file watching is disabled to prevent flickering during agent edits.
     if (dev && process.env.DISABLE_HMR === 'true') {
       config.watchOptions = {
         ignored: /.*/,

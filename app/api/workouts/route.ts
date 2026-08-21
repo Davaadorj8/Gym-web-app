@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { WorkoutService } from '@/services/workout.service';
-import { workoutPlanSchema } from '@/lib/validations/workout';
+import { WorkoutService, workoutPlanSchema } from '@/modules/workouts/server';
 
 export async function GET(req: NextRequest) {
   try {
